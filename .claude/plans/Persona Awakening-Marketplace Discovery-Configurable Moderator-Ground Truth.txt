@@ -1,0 +1,244 @@
+Plan: Persona Awakening, Marketplace Discovery, Configurable Moderator, Ground Truth       
+                                                                                            
+ Context                                                                                    
+
+ The core focus-swarm pipeline (mint → AXL cohort → moderator → synthesizer → report) is
+ fully implemented. The gap is:
+ 1. Personas are thrown away after each session — no reuse
+ 2. Researcher has no way to find or preview interesting past personas
+ 3. Moderator is generic — no way to configure research goals or style
+ 4. Persona brains are generated cold with no real behavioral grounding
+
+ The user wants: personas that "apply" to participate in new research (agent autonomy
+ demo), a library to browse and accept them, configurable moderator, and real personality
+ data as ground truth.
+
+ Hackathon tracks served: 0G Autonomous Agents (awakening = verified inference per
+ persona), Gensyn AXL (awakening pings via AXL or REST), ENS (discovery catalog = ENS text
+ records).
+
+ ---
+ What NOT to build (out of scope)
+
+ - Token trading / revenue sharing marketplace contract
+ - EIP-3668 phase 2 (CCIP signing)
+ - Ratings / voting system
+ - Persistent memory growth across sessions (complex, deferred)
+
+ ---
+ Feature 1 — Persona Catalog (/personas endpoint)
+
+ File: packages/ens-gateway/src/server.ts
+
+ Add one endpoint:
+ GET /personas?market=<optional filter>
+ → returns all records from SQLite with their text fields parsed
+
+ Text fields already stored per persona:
+ - agent.inft — contract:tokenId
+ - agent.axl_peer — peer pubkey
+ - agent.archetype — slug
+ - agent.resume — 0g://<rootHash> (brain location)
+
+ Add two new text fields written at mint time (change in smith):
+ - agent.target_market — market string used at generation
+ - agent.featured — "true" if manually tagged (default "false")
+
+ Change in smith mintPersona() (packages/smith/src/index.ts:L90):
+ Add 'agent.target_market': spec.targetMarket and 'agent.featured': 'false' to the
+ registerEns() texts call.
+
+ ---
+ Feature 2 — Persona Awakening
+
+ Concept: Researcher creates a proposal (market + brief) → system fetches all catalog
+ personas → for each one matching market, loads brain from 0G Storage → calls 0G Compute to
+  generate a 1-2 sentence "expression of interest" (verified) → researcher sees these
+ mini-responses and picks which to include.
+
+ This is the agent-autonomy story: personas deciding whether they want to participate.
+
+ New function: packages/smith/src/index.ts — export awakenPersonas(market, brief, limit=6)
+
+ async function awakenPersonas(market: string, brief: string, limit = 6):
+ Promise<AwakenResult[]>
+
+ Flow per persona:
+ 1. GET /personas?market=<market> from ENS gateway
+ 2. For each (up to limit): parse agent.resume → extract rootHash →
+ downloadDecrypted(rootHash, key)
+   - Key problem: AES key is stored in infra/axl/keys/persona-<tokenId>.aes (written by
+ smith at mint time). For hackathon: load from local file by tokenId.
+ 3. Call chat() with persona's system prompt + the research brief → generate "application"
+ (1-2 sentences in persona voice)
+ 4. Return: { ensName, tokenId, archetype, targetMarket, applicationText, verified,
+ rootHash, keyPath }
+
+ New CLI command packages/smith/src/cli.ts:
+ pnpm -F smith awaken -- --market="urban renters" --brief="save cart feature" --limit=4
+
+ New API endpoint packages/ui/src/app/api/awaken/route.ts:
+ POST /api/awaken { market, brief, limit }
+ → returns AwakenResult[]
+
+ ---
+ Feature 3 — Mixed Cohort (library + new personas)
+
+ Extend SessionInput in packages/orchestrator/src/index.ts:
+
+ interface SessionInput {
+   targetMarket: string;
+   productBrief: string;
+   archetypes: string[];           // new personas to generate
+   reusePersonas?: ReuseSpec[];    // existing personas to pull in
+   moderatorConfig?: ModeratorConfig;
+   cohortId?: number;
+   totalTurns?: number;
+ }
+
+ interface ReuseSpec {
+   rootHash: string;
+   keyPath: string;
+   ensName: string;
+   tokenId: number;
+ }
+
+ In runSession(): for reusePersonas, skip mint — directly spawn persona runtime with
+ existing rootHash + key env vars. Persona runtime already accepts PERSONA_ROOT_HASH +
+ PERSONA_KEY_PATH env vars.
+
+ ---
+ Feature 4 — Configurable Moderator
+
+ File: packages/moderator/src/index.ts
+
+ Add ModeratorConfig to session input:
+
+ interface ModeratorConfig {
+   researchGoals: string[];        // "understand checkout anxiety", "find willingness to
+ pay signals"
+   style: 'breadth' | 'deep-dive' | 'conflict-seeking';
+   productBrief: string;          // already exists as top-level, thread it through
+ }
+
+ Change the probe-generation system prompt in moderator to include:
+ - researchGoals list
+ - Style instructions (conflict-seeking → "ask personas to react to each other's points")
+ - Keep existing dynamic LLM probe generation
+
+ UI change: add researchGoals textarea + style dropdown to the session form.
+
+ ---
+ Feature 5 — Real Personality Ground Truth
+
+ New file: packages/smith/src/ground-truth.ts
+
+ Two-layer approach (most efficient for hackathon):
+
+ Layer 1 — Big 5 archetype map (static, zero API calls)
+ const BIG5_BY_ARCHETYPE: Record<string, Big5Scores> = {
+   'gen-z-berlin-renter': { openness: 0.8, conscientiousness: 0.4, extraversion: 0.6,
+ agreeableness: 0.5, neuroticism: 0.6 },
+   // ... common archetypes
+ }
+ Sourced from academic LIWC / Big 5 literature on demographic groups. Hardcoded lookup with
+  fuzzy match on archetype slug.
+
+ Layer 2 — Reddit voice samples (live fetch, cached)
+ async function fetchRedditVoice(archetype: string): Promise<string[]>
+ - Maps archetype slug → list of subreddits (e.g. gen-z-berlin-renter → r/berlin, r/GenZ,
+ r/Apartmenttherapy)
+ - Hits Reddit JSON API (https://www.reddit.com/r/{sub}/hot.json?limit=10) — no auth needed
+  for public hot posts
+ - Extracts post titles + top comment text
+ - Returns 8-12 short excerpts as voice samples
+ - Caches to infra/deploy/voice-cache/{archetype}.json to avoid re-fetching
+
+ Wire into generatePersona() in packages/smith/src/index.ts:
+ - Before calling chat(), call fetchGroundTruth(archetype) → { big5, voiceSamples }
+ - Inject into system prompt as additional context:
+ Personality anchors (Big 5): openness=0.8, conscientiousness=0.4 ...
+ Voice samples from their communities:
+ - "Just moved to Neukölln, the vibe is different but I love it"
+ - "Anyone else using Splitwise for everything?"
+
+ ---
+ UI Changes
+
+ File: packages/ui/src/app/page.tsx
+
+ Three panels replacing the current single form:
+
+ Panel A — Research Proposal
+
+ - targetMarket textarea
+ - productBrief textarea
+ - researchGoals textarea (one per line → split to array)
+ - moderationStyle select: breadth / deep-dive / conflict-seeking
+ - [Awaken existing personas] button → calls /api/awaken, shows results below
+
+ Panel B — Cohort Builder (shown after awakening or directly)
+
+ - Awakened persona cards: name, archetype, their application text, [Add to cohort] button
+ - "Generate new personas" input: archetype slugs comma-separated
+ - Session config: totalTurns number
+ - [Run Session] button → calls /api/sessions with selected reuse + new archetypes
+
+ Panel C — Results (shown after session)
+
+ - Minted cohort list (tokenId + ensName for new ones)
+ - Live transcript streaming (existing)
+ - Report: themes, pain points, opportunities, scores (existing)
+
+ ---
+ File Change Summary
+
+ ┌───────────────────────────────────────────┬──────────────────────────────────────────┐
+ │                   File                    │                  Change                  │
+ ├───────────────────────────────────────────┼──────────────────────────────────────────┤
+ │ packages/ens-gateway/src/server.ts        │ Add GET /personas endpoint               │
+ ├───────────────────────────────────────────┼──────────────────────────────────────────┤
+ │ packages/smith/src/index.ts               │ Add agent.target_market + agent.featured │
+ │                                           │  at mint; add awakenPersonas() export    │
+ ├───────────────────────────────────────────┼──────────────────────────────────────────┤
+ │ packages/smith/src/cli.ts                 │ Add awaken subcommand                    │
+ ├───────────────────────────────────────────┼──────────────────────────────────────────┤
+ │ packages/smith/src/ground-truth.ts        │ NEW — Big5 map + Reddit voice fetch +    │
+ │                                           │ cache                                    │
+ ├───────────────────────────────────────────┼──────────────────────────────────────────┤
+ │ packages/orchestrator/src/index.ts        │ Add reusePersonas + moderatorConfig to   │
+ │                                           │ SessionInput; skip mint for reuse        │
+ ├───────────────────────────────────────────┼──────────────────────────────────────────┤
+ │ packages/moderator/src/index.ts           │ Add ModeratorConfig to probe generation  │
+ │                                           │ prompt                                   │
+ ├───────────────────────────────────────────┼──────────────────────────────────────────┤
+ │ packages/ui/src/app/page.tsx              │ Three-panel UI (proposal → cohort        │
+ │                                           │ builder → results)                       │
+ ├───────────────────────────────────────────┼──────────────────────────────────────────┤
+ │ packages/ui/src/app/api/awaken/route.ts   │ NEW — POST /api/awaken endpoint          │
+ ├───────────────────────────────────────────┼──────────────────────────────────────────┤
+ │ packages/ui/src/app/api/sessions/route.ts │ Thread moderatorConfig + reusePersonas   │
+ │                                           │ through to orchestrator                  │
+ └───────────────────────────────────────────┴──────────────────────────────────────────┘
+
+ ---
+ Decisions (confirmed)
+
+ 1. AES key storage: Local files (infra/axl/keys/persona-{tokenId}.aes) — fine for
+ hackathon.
+ 2. Awakening scope: Match by agent.target_market — only ping personas whose market
+ overlaps the proposal.
+ 3. Ground truth: Both layers — Big 5 anchors (static, academic) + Reddit voice samples
+ (live fetch, cached).
+
+ ---
+ Verification Steps
+
+ 1. pnpm -F @focus-swarm/ens-gateway dev → curl localhost:8787/personas returns array
+ 2. pnpm -F smith mint -- --archetype=gen-z-berlin-renter --market="urban renters"
+ --cohort=0 → ENS record includes agent.target_market
+ 3. pnpm -F smith awaken -- --market="urban renters" --brief="save cart" → returns
+ application texts, all verified: true
+ 4. UI: fill proposal form → click Awaken → see persona cards → add one to cohort + add one
+  new archetype → Run Session → see report
+ 5. Report includes personas from both reuse + new mint

@@ -5,12 +5,22 @@
 // Pattern: gskril/ens-offchain-registrar.
 // TODO(phase2): wire real EIP-3668 signing + viem-compatible response shape.
 
-import 'dotenv/config';
+import { config as loadDotenv } from 'dotenv';
+import { fileURLToPath } from 'url';
 import express from 'express';
 import Database from 'better-sqlite3';
 import path from 'node:path';
 
-const db = new Database(process.env.ENS_GATEWAY_DB ?? './infra/deploy/ens.db');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(__dirname, '../../..');
+loadDotenv({ path: path.join(repoRoot, '.env') });
+
+const dbPath = process.env.ENS_GATEWAY_DB
+  ? path.resolve(repoRoot, process.env.ENS_GATEWAY_DB)
+  : path.join(repoRoot, 'infra/deploy/ens.db');
+import fs from 'node:fs';
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const db = new Database(dbPath);
 db.exec(`
   CREATE TABLE IF NOT EXISTS records (
     name TEXT PRIMARY KEY,
@@ -47,4 +57,4 @@ app.get('/ccip/:sender/:data', (_req, res) => {
 });
 
 const port = Number(process.env.ENS_GATEWAY_PORT ?? 8787);
-app.listen(port, () => console.log(`[ens-gateway] :${port}, db=${path.resolve(process.env.ENS_GATEWAY_DB ?? './infra/deploy/ens.db')}`));
+app.listen(port, () => console.log(`[ens-gateway] :${port}, db=${dbPath}`));
