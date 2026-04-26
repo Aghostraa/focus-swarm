@@ -56,10 +56,12 @@ export interface SessionArtifacts {
   personas: MintedPersona[];
   reusedPersonas: ReuseSpec[];
   transcriptPath: string;
+  eventsPath: string;
   reportPath: string;
   reportRootHash: string | null;
   report: Report;
   personaEvolutions: PersonaEvolution[];
+  personaMap: Record<string, { archetype: string; role: string; ensName: string }>;
 }
 
 interface PeerEntry { tokenId: string; role: string; peerId: string; apiPort: number; }
@@ -171,6 +173,20 @@ export async function runSession(input: SessionInput): Promise<SessionArtifacts>
 
   // 5. Run moderator (in-process via child)
   fs.mkdirSync(REPORTS_DIR, { recursive: true });
+  const eventsPath = path.join(REPORTS_DIR, `${sessionId}.events.ndjson`);
+
+  // Build peerId → persona metadata map for moderator event labelling
+  const personaMap: Record<string, { archetype: string; role: string; ensName: string }> = {};
+  for (const p of allPersonas) {
+    if (p.axlPeerId) {
+      personaMap[p.axlPeerId] = {
+        archetype: p.spec?.archetype ?? p.ensName.split('.')[0],
+        role: p.spec?.role ?? 'consumer',
+        ensName: p.ensName,
+      };
+    }
+  }
+
   const moderatorEnv: Record<string, string> = {
     AXL_API_URL: `http://127.0.0.1:${moderatorPeer.apiPort}`,
     PEER_LIST_PATH: PEERS_FILE,
@@ -179,6 +195,8 @@ export async function runSession(input: SessionInput): Promise<SessionArtifacts>
     TOTAL_TURNS: String(input.totalTurns ?? 12),
     TURN_INTERVAL_MS: String(input.turnIntervalMs ?? 2000),
     REPORTS_DIR,
+    SESSION_EVENTS_PATH: eventsPath,
+    PERSONA_MAP: JSON.stringify(personaMap),
     ...(input.moderatorConfig?.researchGoals?.length
       ? { RESEARCH_GOALS: JSON.stringify(input.moderatorConfig.researchGoals) }
       : {}),
@@ -260,9 +278,11 @@ export async function runSession(input: SessionInput): Promise<SessionArtifacts>
     personas: minted,
     reusedPersonas: reused,
     transcriptPath,
+    eventsPath,
     reportPath,
     reportRootHash: rootHash,
     report,
     personaEvolutions,
+    personaMap,
   };
 }

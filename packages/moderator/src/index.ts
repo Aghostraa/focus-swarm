@@ -25,6 +25,14 @@ const REPORTS_DIR = process.env.REPORTS_DIR ?? './infra/deploy/reports';
 const RESEARCH_GOALS: string[] = process.env.RESEARCH_GOALS ? JSON.parse(process.env.RESEARCH_GOALS) : [];
 const MODERATION_STYLE: 'breadth' | 'deep-dive' | 'conflict-seeking' =
   (process.env.MODERATION_STYLE as any) ?? 'breadth';
+const EVENTS_PATH = process.env.SESSION_EVENTS_PATH ?? null;
+const PERSONA_MAP: Record<string, { archetype: string; role: string; ensName: string }> =
+  process.env.PERSONA_MAP ? JSON.parse(process.env.PERSONA_MAP) : {};
+
+function emitEvent(event: object): void {
+  if (!EVENTS_PATH) return;
+  try { fs.appendFileSync(EVENTS_PATH, JSON.stringify(event) + '\n'); } catch {}
+}
 
 interface PeerEntry { tokenId: string; peerId: string; archetype?: string; }
 
@@ -82,6 +90,8 @@ async function main() {
       if (msg.type === 'utterance') {
         transcript.push({ speaker: msg.speaker, text: msg.text, ts: msg.ts });
         await logAppend(transcriptStream, msg).catch(() => {});
+        const meta = PERSONA_MAP[msg.speaker];
+        emitEvent({ type: 'utterance', speaker: msg.speaker, archetype: meta?.archetype ?? msg.speaker.slice(0, 8), role: meta?.role ?? 'consumer', ensName: meta?.ensName ?? '', text: msg.text, ts: msg.ts });
         console.log(`[moderator] heard ${msg.speaker.slice(0, 8)}: ${msg.text.slice(0, 100)}`);
       }
     },
@@ -91,6 +101,8 @@ async function main() {
   for (let turn = 0; turn < TOTAL_TURNS; turn++) {
     const speaker = nextSpeaker(peers, turn);
     const probe = await generateProbe(turn, transcript);
+    const meta = PERSONA_MAP[speaker.peerId];
+    emitEvent({ type: 'thinking', speaker: speaker.peerId, archetype: meta?.archetype ?? speaker.tokenId, role: meta?.role ?? 'consumer', probe, turn, ts: Date.now() });
     const turnMsg: SwarmMsg = {
       type: 'turn',
       sessionId: SESSION_ID,
@@ -99,9 +111,7 @@ async function main() {
       transcriptTail: transcript.slice(-6),
     };
     console.log(`[moderator] turn ${turn} → ${speaker.archetype ?? speaker.tokenId} probe="${probe.slice(0, 60)}..."`);
-    // Broadcast to all so observers (UI, harness, other personas as listeners) can follow context.
     await Promise.all(peers.map((p) => axl.send(p.peerId, turnMsg).catch(() => {})));
-    // Wait for the speaker's utterance to arrive (or timeout).
     const before = transcript.length;
     const deadline = Date.now() + 30000;
     while (transcript.length === before && Date.now() < deadline) {
@@ -109,12 +119,14 @@ async function main() {
     }
     if (transcript.length === before) {
       console.warn(`[moderator] turn ${turn} timeout — speaker silent`);
+      emitEvent({ type: 'timeout', speaker: speaker.peerId, turn, ts: Date.now() });
     }
     await new Promise((s) => setTimeout(s, TURN_INTERVAL_MS));
   }
 
   const endMsg: SwarmMsg = { type: 'session-end', sessionId: SESSION_ID };
   await Promise.all(peers.map((p) => axl.send(p.peerId, endMsg).catch(() => {})));
+  emitEvent({ type: 'session-end', ts: Date.now() });
   ac.abort();
   await recvPromise;
 

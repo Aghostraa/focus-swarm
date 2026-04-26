@@ -44,11 +44,11 @@ interface PersonaSpec {
 }
 
 const ROLE_FOCUS: Record<string, string> = {
-  'consumer': 'your everyday experience — what feels natural, what confuses you, what you'd actually use',
+  'consumer': "your everyday experience — what feels natural, what confuses you, what you'd actually use",
   'technical-skeptic': 'implementation claims, hidden complexity, scalability, and developer experience',
   'user-advocate': 'onboarding friction, confusing flows, accessibility, and first impressions',
   'pm': 'business value, prioritisation by ROI, and what would make a good product ticket',
-  'accessibility-lens': 'what assumes tech literacy, what feels overwhelming, and whether you'd trust it',
+  'accessibility-lens': "what assumes tech literacy, what feels overwhelming, and whether you'd trust it",
 };
 
 interface PersonaState {

@@ -36,6 +36,24 @@ interface PersonaEvolution {
   sessionCount: number;
 }
 
+interface LiveEvent {
+  type: 'utterance' | 'thinking' | 'timeout' | 'session-end' | 'result' | 'error' | 'heartbeat';
+  speaker?: string;
+  archetype?: string;
+  role?: string;
+  ensName?: string;
+  text?: string;
+  probe?: string;
+  turn?: number;
+  ts?: number;
+}
+
+interface Participant {
+  archetype: string;
+  role: string;
+  ensName: string;
+}
+
 interface SessionResult {
   sessionId: string;
   cohortId: number;
@@ -77,9 +95,14 @@ export default function Home() {
   const [turns, setTurns] = useState(9);
 
   // Session state
-  const [running, setRunning] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [result, setResult] = useState<SessionResult | null>(null);
+  const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
+  const [thinkingPersona, setThinkingPersona] = useState<string | null>(null);
+  const [sessionDone, setSessionDone] = useState(false);
+  const running = sessionId !== null && !sessionDone && !result;
 
   async function awaken() {
     setAwakening(true);
@@ -111,37 +134,63 @@ export default function Home() {
   }
 
   async function runSession() {
-    setRunning(true);
     setSessionError(null);
     setResult(null);
-    try {
-      const reusePersonas = (awakenResults ?? [])
-        .filter((r) => selectedReuse.has(r.tokenId))
-        .map((r) => ({ tokenId: r.tokenId, ensName: r.ensName, rootHash: r.rootHash, keyPath: r.keyPath }));
+    setLiveEvents([]);
+    setThinkingPersona(null);
+    setSessionDone(false);
+    setSessionId(null);
+    setParticipants([]);
 
+    const reusePersonas = (awakenResults ?? [])
+      .filter((r) => selectedReuse.has(r.tokenId))
+      .map((r) => ({ tokenId: r.tokenId, ensName: r.ensName, rootHash: r.rootHash, keyPath: r.keyPath, archetype: r.archetype, role: r.role }));
+
+    let sid: string;
+    try {
       const res = await fetch('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          targetMarket: market,
-          productBrief: brief,
+          targetMarket: market, productBrief: brief,
           archetypes: archetypes.split(',').map((s) => s.trim()).filter(Boolean),
-          reusePersonas,
-          totalTurns: turns,
-          moderatorConfig: {
-            researchGoals: goals.split('\n').map((s) => s.trim()).filter(Boolean),
-            style,
-          },
+          reusePersonas, totalTurns: turns,
+          moderatorConfig: { researchGoals: goals.split('\n').map((s) => s.trim()).filter(Boolean), style },
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
-      setResult(data as SessionResult);
+      sid = data.sessionId;
+      setSessionId(sid);
+      setParticipants(data.participants ?? []);
     } catch (e) {
       setSessionError((e as Error).message);
-    } finally {
-      setRunning(false);
+      return;
     }
+
+    // Subscribe to SSE stream
+    const evtSource = new EventSource(`/api/sessions/stream?id=${sid}`);
+    evtSource.onmessage = (e) => {
+      try {
+        const event = JSON.parse(e.data) as LiveEvent;
+        if (event.type === 'thinking') {
+          setThinkingPersona(event.archetype ?? null);
+        } else if (event.type === 'utterance') {
+          setThinkingPersona(null);
+          setLiveEvents((prev) => [...prev, event]);
+        } else if (event.type === 'session-end') {
+          setSessionDone(true);
+          setThinkingPersona(null);
+        } else if (event.type === 'result') {
+          setResult((event as any).result as SessionResult);
+          evtSource.close();
+        } else if (event.type === 'error') {
+          setSessionError((event as any).message ?? 'session error');
+          evtSource.close();
+        }
+      } catch {}
+    };
+    evtSource.onerror = () => evtSource.close();
   }
 
   return (
@@ -263,11 +312,84 @@ export default function Home() {
         </section>
       )}
 
+      {/* Panel Live — Session Grid */}
+      {sessionId && !result && (
+        <section style={card}>
+          <h2 style={h2}>3. Live session{sessionDone ? ' — synthesising…' : ''}</h2>
+          <p style={{ color: '#9a9aa3', fontSize: 12, margin: '0 0 14px' }}>
+            {sessionDone ? 'Session complete. Running synthesiser…' : `Session ${sessionId} running · ${liveEvents.length} utterances`}
+          </p>
+
+          {/* Persona grid */}
+          {participants.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(participants.length, 3)}, 1fr)`, gap: 10, marginBottom: 16 }}>
+              {participants.map((p, i) => {
+                const isThinking = thinkingPersona === p.archetype;
+                const lastMsg = [...liveEvents].reverse().find((e) => e.archetype === p.archetype && e.type === 'utterance');
+                return (
+                  <div key={i} style={{
+                    background: isThinking ? '#1e1a2e' : '#1a1a1f',
+                    border: isThinking ? '1px solid #7b65ff' : '1px solid #25252b',
+                    borderRadius: 8, padding: 12, transition: 'all 0.3s',
+                  }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                        background: isThinking ? '#7b65ff' : '#2a2a3a',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 14, transition: 'background 0.3s',
+                      }}>
+                        {ROLE_ICON[p.role] ?? '🧑'}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#e8e8ea', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {p.archetype}
+                        </div>
+                        <div style={{ fontSize: 10, color: '#7b65ff' }}>{p.role.replace(/-/g, ' ')}</div>
+                      </div>
+                    </div>
+                    {isThinking ? (
+                      <div style={{ fontSize: 12, color: '#7b65ff', fontStyle: 'italic' }}>
+                        <Dots /> thinking…
+                      </div>
+                    ) : lastMsg?.text ? (
+                      <p style={{ margin: 0, fontSize: 12, color: '#c5c5cc', lineHeight: 1.5, maxHeight: 72, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical' } as React.CSSProperties}>
+                        {lastMsg.text}
+                      </p>
+                    ) : (
+                      <p style={{ margin: 0, fontSize: 12, color: '#4a4a52' }}>waiting…</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Transcript feed */}
+          {liveEvents.length > 0 && (
+            <div style={{ background: '#0e0e10', borderRadius: 8, padding: 12, maxHeight: 280, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {liveEvents.map((e, i) => (
+                <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12 }}>
+                  <span style={{ color: '#7b65ff', flexShrink: 0, fontWeight: 600, minWidth: 120 }}>
+                    {ROLE_ICON[e.role ?? ''] ?? '🧑'} {e.archetype ?? e.speaker?.slice(0, 8)}
+                  </span>
+                  <span style={{ color: '#c5c5cc', lineHeight: 1.5 }}>{e.text}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {liveEvents.length === 0 && !sessionDone && (
+            <p style={{ color: '#4a4a52', fontSize: 13 }}>Minting personas, booting AXL cohort… first utterances will appear here.</p>
+          )}
+        </section>
+      )}
+
       {/* Panel C — Results */}
       {result && (
         <>
           <section style={card}>
-            <h2 style={h2}>3. Cohort</h2>
+            <h2 style={h2}>4. Cohort</h2>
             <ul style={{ paddingLeft: 18, margin: 0 }}>
               {result.personas.map((p) => (
                 <li key={p.tokenId} style={{ marginBottom: 6 }}>
@@ -283,7 +405,7 @@ export default function Home() {
           </section>
 
           <section style={card}>
-            <h2 style={h2}>4. Report</h2>
+            <h2 style={h2}>5. Report</h2>
             <p style={{ marginTop: 0 }}>{result.report.rawSummary}</p>
             <Scores s={result.report.scores} />
             <ColumnList title="Themes" items={result.report.themes} />
@@ -320,7 +442,7 @@ export default function Home() {
 
           {result.personaEvolutions?.length > 0 && (
             <section style={card}>
-              <h2 style={h2}>5. Persona evolution</h2>
+              <h2 style={h2}>6. Persona evolution</h2>
               <p style={{ color: '#9a9aa3', fontSize: 13, margin: '0 0 12px' }}>
                 {result.personaEvolutions.filter((e) => e.newRootHash).length} of {result.personaEvolutions.length} personas evolved — new brain versions stored on 0G.
               </p>
@@ -340,6 +462,18 @@ export default function Home() {
       )}
     </main>
   );
+}
+
+const ROLE_ICON: Record<string, string> = {
+  'consumer': '🛒',
+  'technical-skeptic': '🔬',
+  'user-advocate': '🧡',
+  'pm': '📋',
+  'accessibility-lens': '♿',
+};
+
+function Dots() {
+  return <span style={{ letterSpacing: 2 }}>···</span>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
