@@ -1,0 +1,327 @@
+Plan: Persistent Persona Memory, Skill Accumulation & Role-Aware Sessions
+                                     
+ Context
+
+ The previous plan (awakening, catalog, ground truth, configurable moderator) is complete.
+ Personas now have rich WD-grounded personalities and can apply to research proposals. But
+ they still die after each session — their brain blob is static, their KV state
+ (mood/turnsSpoken) resets, and every session starts cold.
+
+ The infrastructure for persistence is already wired: kvSet/kvGet/logAppend on 0G KV,
+ encrypted brain blobs on 0G Storage, ENS agent.resume pointing to the current brain.
+ What's missing is the feedback loop:
+
+ session ends → skill assessment (verified 0G Compute) → brain re-encrypted with updated
+ skills → new rootHash → ENS updated → next session starts smarter
+
+ This makes persona growth provable on-chain — the ENS record's agent.resume hash changes
+ after every session, and the 0G Storage blob at that hash contains verifiably upgraded
+ skills.
+
+ Longer-term direction (explicitly out of scope now): personas with roles acting as a code
+ review / dev team.
+
+ ---
+ What NOT to build (this plan)
+
+ - Tool access per role (file reading, code execution, PR generation)
+ - Skill decay / forgetting over time
+ - Cross-persona relationship memory
+ - Real-time skill display during sessions
+ - Full dev-team / code-writing mode
+
+ ---
+ Phase 1 — Skill Schema + Role Assignment
+
+ File: packages/smith/src/types.ts
+
+ Add:
+ export type PersonaRole =
+   | 'consumer'            // default — general product user
+   | 'technical-skeptic'   // challenges implementation claims, spots complexity
+   | 'user-advocate'       // UX focus, accessibility, onboarding friction
+   | 'pm'                  // prioritises by ROI, frames as tickets
+   | 'accessibility-lens'; // low tech literacy perspective
+
+ export interface PersonaSkills {
+   sessionCount: number;
+   role: PersonaRole;
+   domainKnowledge: Record<string, number>;   // e.g. { fintech: 0.7, saas: 0.4 }
+   uxLiteracy: number;                        // 0–1
+   technicalDepth: number;                    // 0–1
+   communicationMaturity: number;             // 0–1
+   sessionSummaries: string[];                // last 5 compact summaries (≤100 words each)
+ }
+
+ Extend PersonaSpec:
+ skills?: PersonaSkills;
+ role?: PersonaRole;
+
+ ---
+ Phase 2 — Role Inference + Initial Skills at Generation
+
+ File: packages/smith/src/index.ts
+
+ Add inferRole(archetype: string, spec: PersonaSpec): PersonaRole:
+ - techLiteracy === 'high' + engineer/dev/coder keywords → 'technical-skeptic'
+ - young + ux/design/renter keywords → 'user-advocate'
+ - founder/startup/ceo/pm keywords → 'pm'
+ - techLiteracy === 'low' + boomer/senior/retired → 'accessibility-lens'
+ - default → 'consumer'
+
+ Wire into generatePersona() after JSON parse — before returning PersonaSpec:
+ const role = inferRole(archetype, spec);
+ spec.role = role;
+ spec.skills = {
+   sessionCount: 0,
+   role,
+   domainKnowledge: {},
+   uxLiteracy: gt.big5.openness * 0.6 + (spec.techLiteracy === 'high' ? 0.4 : 0),
+   technicalDepth: spec.techLiteracy === 'high' ? 0.7 : spec.techLiteracy === 'medium' ?
+ 0.4 : 0.1,
+   communicationMaturity: gt.big5.conscientiousness * 0.5 + gt.big5.agreeableness * 0.3,
+   sessionSummaries: [],
+ };
+
+ ---
+ Phase 3 — Role-Aware Runtime System Prompt
+
+ File: packages/persona/src/runtime.ts
+
+ Extend local PersonaSpec interface to include skills?: PersonaSkills and role?: string.
+
+ Update buildSystemPrompt(spec) to inject three blocks after the base profile:
+
+ Role context (if role present):
+ Your role in this session: [User Advocate].
+ You especially attend to: onboarding friction, confusing flows, accessibility, first
+ impressions.
+
+ Prior session memory (if sessionSummaries.length > 0):
+ You've participated in 3 prior sessions. Key things you've learned:
+ - [summary 1]
+ - [summary 2]
+
+ Domain expertise (if any domain > 0.5):
+ You've developed a refined eye for fintech friction (0.7) and SaaS onboarding (0.6).
+
+ Role-to-focus strings (hardcoded map, same as types):
+ const ROLE_FOCUS = {
+   'consumer': 'your everyday experience — what feels natural, what confuses you',
+   'technical-skeptic': 'implementation claims, hidden complexity, scalability, developer
+ experience',
+   'user-advocate': 'onboarding friction, confusing flows, accessibility, first
+ impressions',
+   'pm': 'business value, prioritisation, ROI framing, what would make a good ticket',
+   'accessibility-lens': 'what assumes tech literacy, what feels overwhelming, trust and
+ clarity',
+ };
+
+ ---
+ Phase 4 — Post-Session Persona Evolution
+
+ File: packages/smith/src/index.ts
+
+ Add evolvePersona(params): Promise<EvolveResult | null>:
+
+ interface EvolveParams {
+   tokenId: number;
+   ensName: string;
+   currentSpec: PersonaSpec;
+   currentKey: Buffer;
+   myUtterances: string[];      // this persona's lines from transcript
+   reportThemes: string[];
+   reportOpportunities: string[];
+   productBrief: string;
+ }
+
+ interface EvolveResult {
+   newRootHash: string;
+   updatedSkills: PersonaSkills;
+ }
+
+ Flow:
+ 1. Verified skill assessment via chat():
+   - System prompt: skill evaluator role, JSON output spec:
+ { sessionSummary: string, domainDeltas: Record<string,number>, uxLiteracyDelta: number,
+ technicalDepthDelta: number, communicationMaturityDelta: number }
+   - User prompt: persona archetype + role + utterances (≤10) + report themes
+   - All deltas clamped to [-0.1, +0.1]
+   - If !r.verified → return null (skip evolution, log warning)
+ 2. Merge skills into updated PersonaSpec:
+ const updated: PersonaSkills = {
+   sessionCount: current.sessionCount + 1,
+   role: current.role,
+   domainKnowledge: mergeDeltas(current.domainKnowledge, delta.domainDeltas),
+   uxLiteracy: clamp01(current.uxLiteracy + delta.uxLiteracyDelta),
+   technicalDepth: clamp01(current.technicalDepth + delta.technicalDepthDelta),
+   communicationMaturity: clamp01(current.communicationMaturity +
+ delta.communicationMaturityDelta),
+   sessionSummaries: [...current.sessionSummaries.slice(-4), delta.sessionSummary],
+ };
+ 3. Re-encrypt + upload updated brain blob → newRootHash
+ 4. Update ENS agent.resume = 0g://${newRootHash} via registerEns() POST to gateway
+ 5. Update KV persona:${tokenId}:skills for fast lookup at next spawn (optional fast path —
+  runtime already loads from blob)
+ 6. Return { newRootHash, updatedSkills }
+
+ Add helpers:
+ - clamp01(v: number): number — clamp to [0, 1]
+ - mergeDeltas(base: Record<string,number>, deltas: Record<string,number>):
+ Record<string,number> — apply deltas, clamp results
+
+ ---
+ Phase 5 — Orchestrator: Trigger Evolution After Session
+
+ File: packages/orchestrator/src/index.ts
+
+ Thread spec and keyPath through persona tracking — the internal SpawnedPersona type needs:
+ interface SpawnedPersona {
+   tokenId: number;
+   ensName: string;
+   axlPeerId: string;
+   rootHash: string;
+   keyPath: string;
+   spec: PersonaSpec;   // ADD
+ }
+ Both minted and reused personas already have these values available — just need to carry
+ them.
+
+ After runFromFile() returns, before cleanup:
+ const transcript = JSON.parse(fs.readFileSync(transcriptPath, 'utf8'));
+ const evolutionResults = await Promise.allSettled(
+   allPersonas.map(async (p) => {
+     const myUtterances = transcript.transcript
+       .filter((t: any) => t.speaker === p.axlPeerId)
+       .map((t: any) => t.text);
+     return evolvePersona({
+       tokenId: p.tokenId,
+       ensName: p.ensName,
+       currentSpec: p.spec,
+       currentKey: fs.readFileSync(p.keyPath),
+       myUtterances,
+       reportThemes: report.themes,
+       reportOpportunities: report.opportunities,
+       productBrief,
+     });
+   })
+ );
+
+ Best-effort — a failed evolution does not fail the session.
+
+ Extend SessionArtifacts:
+ personaEvolutions: Array<{
+   tokenId: number;
+   ensName: string;
+   newRootHash: string | null;   // null if evolution failed
+   sessionCount: number;
+ }>;
+
+ ---
+ Phase 6 — Role-Aware Synthesizer Report
+
+ File: packages/synthesizer/src/index.ts
+
+ Add to Report:
+ personaInsights: Array<{
+   ensName: string;
+   role: string;
+   sessionCount: number;
+   topDomains: string[];
+   keyContribution: string;   // 1 sentence
+ }>;
+
+ Update synthesize(session, personaMeta?):
+ - Accept optional personaMeta: Record<string, { role: string; sessionCount: number;
+ domainKnowledge: Record<string, number> }> keyed by speaker AXL peerId
+ - Inject into synthesis prompt context block:
+ Participant profiles:
+ - [peerId prefix]: User Advocate, 3 sessions, fintech expertise
+ - [peerId prefix]: Technical Skeptic, 1 session, fresh perspective
+ Attribute key insights to the most qualified participant when summarising.
+ - After main synthesis, generate personaInsights via second verified chat() call (small
+ prompt: persona profiles + synthesised themes → per-persona key contribution)
+ - If personaMeta absent, personaInsights is []
+
+ Update runFromFile() signature to accept optional personaMeta.
+
+ ---
+ Phase 7 — UI Updates
+
+ File: packages/ui/src/app/page.tsx
+
+ Panel B — persona cards — add role badge + session count + top domain bars:
+ gen-z-renter-london          [User Advocate]  3 sessions
+ "I'd want to try it but..."
+ fintech ▓▓▓▓░  ux ▓▓▓░░
+
+ Panel C — report — add contributor insights section:
+ 5. Key contributor insights
+   [User Advocate · 3 sessions] "The onboarding asks for card details too early..."
+   [Technical Skeptic · 1 session] "The pricing model assumes predictable usage..."
+
+ Show personaEvolutions as a post-session footer:
+ Session complete. 2 personas evolved: new brain versions on 0G.
+
+ File: packages/ui/src/app/api/sessions/route.ts
+
+ - Pass personaMeta to orchestrator/synthesizer
+ - Return personaEvolutions from SessionArtifacts in response
+
+ ---
+ File Change Summary
+
+ ┌───────────────────────────────────────────┬──────────────────────────────────────────┐
+ │                   File                    │                  Change                  │
+ ├───────────────────────────────────────────┼──────────────────────────────────────────┤
+ │ packages/smith/src/types.ts               │ Add PersonaRole, PersonaSkills; extend   │
+ │                                           │ PersonaSpec                              │
+ ├───────────────────────────────────────────┼──────────────────────────────────────────┤
+ │                                           │ Add inferRole(), evolvePersona(),        │
+ │ packages/smith/src/index.ts               │ clamp01(), mergeDeltas(); wire into      │
+ │                                           │ generatePersona()                        │
+ ├───────────────────────────────────────────┼──────────────────────────────────────────┤
+ │ packages/persona/src/runtime.ts           │ Role-aware + session-history             │
+ │                                           │ buildSystemPrompt()                      │
+ ├───────────────────────────────────────────┼──────────────────────────────────────────┤
+ │                                           │ Thread spec+keyPath through; call        │
+ │ packages/orchestrator/src/index.ts        │ evolvePersona() post-synthesis; extend   │
+ │                                           │ SessionArtifacts                         │
+ ├───────────────────────────────────────────┼──────────────────────────────────────────┤
+ │                                           │ Add personaInsights to Report; accept    │
+ │ packages/synthesizer/src/index.ts         │ personaMeta; second verified chat for    │
+ │                                           │ attribution                              │
+ ├───────────────────────────────────────────┼──────────────────────────────────────────┤
+ │ packages/ui/src/app/page.tsx              │ Role badges, domain bars, contributor    │
+ │                                           │ attribution, evolution footer            │
+ ├───────────────────────────────────────────┼──────────────────────────────────────────┤
+ │ packages/ui/src/app/api/sessions/route.ts │ Thread personaMeta + personaEvolutions   │
+ │                                           │ through                                  │
+ └───────────────────────────────────────────┴──────────────────────────────────────────┘
+
+ ---
+ Verification Steps
+
+ 1. pnpm -F smith mint --archetype=genz-renter-berlin --market="urban renters" --cohort=0
+ → Brain blob contains skills object with role: 'user-advocate', sessionCount: 0
+ 2. Run full session via UI or orchestrator CLI
+ → After session: curl localhost:8787/personas → persona's agent.resume hash is different
+ from mint-time hash
+ → cat infra/deploy/reports/*.report.json | jq '.personaInsights' → array with role +
+ keyContribution per persona
+ 3. Awaken same persona for a second session
+ → Runtime logs show "prior sessions" block in system prompt with summary from session 1
+ → skills.sessionCount === 2
+ 4. UI: persona card on awaken panel shows [User Advocate] · 1 session badge
+ → Report shows contributor attribution section
+
+ ---
+ Post-Hackathon Direction (not in scope)
+
+ - Tool access per role: technical-skeptic gets readFile(), user-advocate gets harness
+ screenshot feed
+ - Collaborative dev mode: moderator shares a diff → personas review from role →
+ synthesizer outputs structured PR review
+ - Skill decay: domain knowledge drifts after N sessions without related topics
+ - Cross-persona mentorship: high-sessionCount personas influence fresh mints in same
+ cohort

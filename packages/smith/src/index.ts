@@ -14,8 +14,9 @@ import {
   getWallet,
   loadEd25519PubkeyHex,
 } from '@focus-swarm/core';
-import type { PersonaSpec, MintedPersona } from './types.js';
+import type { PersonaSpec, MintedPersona, PersonaRole, PersonaSkills } from './types.js';
 import { fetchGroundTruth, type GroundTruth } from './ground-truth.js';
+import { kvSet, streamIdFromLabel } from '@focus-swarm/core';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, '../../..');
@@ -64,6 +65,23 @@ JSON only. No prose around it.`;
   return prompt;
 }
 
+function clamp01(v: number): number { return Math.min(1, Math.max(0, v)); }
+
+function mergeDeltas(base: Record<string, number>, deltas: Record<string, number>): Record<string, number> {
+  const out = { ...base };
+  for (const [k, d] of Object.entries(deltas)) out[k] = clamp01((out[k] ?? 0) + d);
+  return out;
+}
+
+function inferRole(archetype: string, spec: PersonaSpec): PersonaRole {
+  const slug = archetype.toLowerCase();
+  if (spec.techLiteracy === 'high' && /engineer|developer|coder|programmer|tech|software/.test(slug)) return 'technical-skeptic';
+  if (/founder|startup|ceo|pm|product.manager/.test(slug)) return 'pm';
+  if (spec.techLiteracy === 'low' && /boomer|senior|retired|older|parent/.test(slug)) return 'accessibility-lens';
+  if (/ux|design|renter|urban|genz|gen.z|young|student/.test(slug)) return 'user-advocate';
+  return 'consumer';
+}
+
 export async function generatePersona(targetMarket: string, archetype: string, cohortId: number): Promise<PersonaSpec> {
   const DEFAULT_GT: GroundTruth = { big5: { openness: 0.60, conscientiousness: 0.55, extraversion: 0.55, agreeableness: 0.58, neuroticism: 0.52 }, wdFacts: [], seedPersona: null };
   const gt = await fetchGroundTruth(archetype).catch(() => DEFAULT_GT);
@@ -76,7 +94,7 @@ export async function generatePersona(targetMarket: string, archetype: string, c
   if (!r.verified) throw new Error('persona generation not verified — refusing to proceed');
   const json = extractJson(r.text);
   if (!json) throw new Error('compute reply not parseable as JSON');
-  return {
+  const spec: PersonaSpec = {
     archetype,
     targetMarket,
     cohortId,
@@ -89,6 +107,18 @@ export async function generatePersona(targetMarket: string, archetype: string, c
     wdFacts: gt.wdFacts.length ? gt.wdFacts : undefined,
     dialogueSamples: Array.isArray(json.dialogueSamples) ? json.dialogueSamples : undefined,
   };
+  const role = inferRole(archetype, spec);
+  spec.role = role;
+  spec.skills = {
+    sessionCount: 0,
+    role,
+    domainKnowledge: {},
+    uxLiteracy: clamp01(gt.big5.openness * 0.6 + (spec.techLiteracy === 'high' ? 0.4 : 0)),
+    technicalDepth: spec.techLiteracy === 'high' ? 0.7 : spec.techLiteracy === 'medium' ? 0.4 : 0.1,
+    communicationMaturity: clamp01(gt.big5.conscientiousness * 0.5 + gt.big5.agreeableness * 0.3),
+    sessionSummaries: [],
+  };
+  return spec;
 }
 
 function extractJson(s: string): any {
@@ -178,7 +208,122 @@ export async function mintPersona(spec: PersonaSpec): Promise<MintedPersona> {
   };
 }
 
-export type { PersonaSpec, MintedPersona };
+export type { PersonaSpec, MintedPersona, PersonaRole, PersonaSkills };
+
+export interface EvolveParams {
+  tokenId: number;
+  ensName: string;
+  currentSpec: PersonaSpec;
+  currentKey: Buffer;
+  myUtterances: string[];
+  reportThemes: string[];
+  reportOpportunities: string[];
+  productBrief: string;
+}
+
+export interface EvolveResult {
+  newRootHash: string;
+  updatedSkills: PersonaSkills;
+}
+
+const EVOLVE_SYS = `You are a skill evaluator for synthetic focus-group personas.
+Given a persona's profile, their utterances from a session, and the session's synthesised insights, output JSON only. Schema:
+{
+  "sessionSummary": string,          // ≤100 words — what this persona contributed and learned
+  "domainDeltas": Record<string,number>,  // domain → delta in [-0.1, 0.1], e.g. { "fintech": 0.05 }
+  "uxLiteracyDelta": number,         // [-0.1, 0.1]
+  "technicalDepthDelta": number,     // [-0.1, 0.1]
+  "communicationMaturityDelta": number // [-0.1, 0.1]
+}
+Be conservative with deltas — one session moves scores by at most 0.05–0.08.`;
+
+export async function evolvePersona(p: EvolveParams): Promise<EvolveResult | null> {
+  const skills = p.currentSpec.skills;
+  if (!skills) return null;
+
+  const userPrompt = [
+    `Persona: ${p.currentSpec.archetype} (${p.currentSpec.role ?? 'consumer'})`,
+    `Life: ${p.currentSpec.lifeStory}`,
+    `Session topic: ${p.productBrief}`,
+    `Their utterances (${p.myUtterances.length}):`,
+    ...p.myUtterances.slice(0, 10).map((u, i) => `[${i + 1}] ${u}`),
+    `Session themes: ${p.reportThemes.join('; ')}`,
+    `Opportunities surfaced: ${p.reportOpportunities.join('; ')}`,
+  ].join('\n');
+
+  let delta: any = null;
+  try {
+    const r = await chat([
+      { role: 'system', content: EVOLVE_SYS },
+      { role: 'user', content: userPrompt },
+    ]);
+    if (!r.verified) {
+      console.warn(`[evolve] ${p.ensName} skill assessment not TeeML-verified — skipping`);
+      return null;
+    }
+    delta = extractEvolutionJson(r.text);
+  } catch (e) {
+    console.warn(`[evolve] ${p.ensName} chat failed:`, (e as Error).message);
+    return null;
+  }
+
+  if (!delta) {
+    console.warn(`[evolve] ${p.ensName} delta JSON not parseable — skipping`);
+    return null;
+  }
+
+  const updatedSkills: PersonaSkills = {
+    sessionCount: skills.sessionCount + 1,
+    role: skills.role,
+    domainKnowledge: mergeDeltas(skills.domainKnowledge, delta.domainDeltas ?? {}),
+    uxLiteracy: clamp01(skills.uxLiteracy + (delta.uxLiteracyDelta ?? 0)),
+    technicalDepth: clamp01(skills.technicalDepth + (delta.technicalDepthDelta ?? 0)),
+    communicationMaturity: clamp01(skills.communicationMaturity + (delta.communicationMaturityDelta ?? 0)),
+    sessionSummaries: [...skills.sessionSummaries.slice(-4), delta.sessionSummary ?? ''],
+  };
+
+  const updatedSpec: PersonaSpec = { ...p.currentSpec, skills: updatedSkills };
+  const blob = Buffer.from(JSON.stringify(updatedSpec));
+  let newRootHash: string;
+  try {
+    const up = await uploadEncrypted(blob, p.currentKey);
+    newRootHash = up.rootHash;
+  } catch (e) {
+    console.warn(`[evolve] ${p.ensName} re-upload failed:`, (e as Error).message);
+    return null;
+  }
+
+  // Update ENS resume pointer
+  try {
+    const { ENSParent } = loadAddresses();
+    await registerEns(p.ensName, await getWallet().getAddress(), {
+      'agent.resume': `0g://${newRootHash}`,
+      'agent.session_count': String(updatedSkills.sessionCount),
+    });
+  } catch (e) {
+    console.warn(`[evolve] ${p.ensName} ENS update failed (non-fatal):`, (e as Error).message);
+  }
+
+  // Fast KV path for next spawn
+  try {
+    const streamId = streamIdFromLabel(`persona:${p.tokenId}:skills`);
+    await kvSet(streamId, 'skills', updatedSkills);
+  } catch (e) {
+    console.warn(`[evolve] ${p.ensName} KV update failed (non-fatal):`, (e as Error).message);
+  }
+
+  console.log(`[evolve] ${p.ensName} session ${updatedSkills.sessionCount} — new brain: ${newRootHash.slice(0, 14)}…`);
+  return { newRootHash, updatedSkills };
+}
+
+function extractEvolutionJson(s: string): any {
+  const fenced = s.match(/```(?:json)?\s*([\s\S]+?)```/);
+  const candidate = fenced ? fenced[1] : s;
+  const start = candidate.indexOf('{');
+  const end = candidate.lastIndexOf('}');
+  if (start < 0 || end < 0) return null;
+  try { return JSON.parse(candidate.slice(start, end + 1)); } catch { return null; }
+}
 
 export interface AwakenResult {
   ensName: string;

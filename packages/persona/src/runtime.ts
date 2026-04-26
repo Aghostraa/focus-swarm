@@ -18,6 +18,16 @@ import {
   type TranscriptEntry,
 } from '@focus-swarm/core';
 
+interface PersonaSkills {
+  sessionCount: number;
+  role: string;
+  domainKnowledge: Record<string, number>;
+  uxLiteracy: number;
+  technicalDepth: number;
+  communicationMaturity: number;
+  sessionSummaries: string[];
+}
+
 interface PersonaSpec {
   archetype: string;
   targetMarket: string;
@@ -29,7 +39,17 @@ interface PersonaSpec {
   techLiteracy: string;
   communicationStyle: string;
   dialogueSamples?: string[];
+  role?: string;
+  skills?: PersonaSkills;
 }
+
+const ROLE_FOCUS: Record<string, string> = {
+  'consumer': 'your everyday experience — what feels natural, what confuses you, what you'd actually use',
+  'technical-skeptic': 'implementation claims, hidden complexity, scalability, and developer experience',
+  'user-advocate': 'onboarding friction, confusing flows, accessibility, and first impressions',
+  'pm': 'business value, prioritisation by ROI, and what would make a good product ticket',
+  'accessibility-lens': 'what assumes tech literacy, what feels overwhelming, and whether you'd trust it',
+};
 
 interface PersonaState {
   mood: number;
@@ -65,11 +85,38 @@ function buildSystemPrompt(spec: PersonaSpec): string {
     `Tech literacy: ${spec.techLiteracy}`,
     `Communication style: ${spec.communicationStyle}`,
   ];
+
   if (spec.dialogueSamples?.length) {
-    parts.push(``, `Voice examples — this is how you actually talk:`);
+    parts.push(``, `Voice examples — this is exactly how you talk:`);
     spec.dialogueSamples.forEach((s) => parts.push(`"${s}"`));
   }
-  parts.push(``, `Reply in 1–3 sentences. Speak naturally, in first person. React from your own life and values, not as a neutral assistant. If asked about a product, lean into specific concerns shaped by your background.`);
+
+  // Role-specific lens
+  const role = spec.role ?? 'consumer';
+  const focus = ROLE_FOCUS[role] ?? ROLE_FOCUS['consumer'];
+  parts.push(``, `Your role in this session: ${role.replace(/-/g, ' ')}.`);
+  parts.push(`You especially attend to: ${focus}.`);
+
+  // Accumulated session memory
+  const skills = spec.skills;
+  if (skills && skills.sessionCount > 0) {
+    parts.push(``, `You've participated in ${skills.sessionCount} prior focus group session${skills.sessionCount > 1 ? 's' : ''}.`);
+    const summaries = skills.sessionSummaries.slice(-2);
+    if (summaries.length > 0) {
+      parts.push(`Key things you've learned or noticed:`);
+      summaries.forEach((s) => parts.push(`- ${s}`));
+    }
+    // Top domain expertise
+    const topDomains = Object.entries(skills.domainKnowledge)
+      .filter(([, v]) => v >= 0.5)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3);
+    if (topDomains.length > 0) {
+      parts.push(`You've developed a refined eye for: ${topDomains.map(([k, v]) => `${k} (${v.toFixed(1)})`).join(', ')}.`);
+    }
+  }
+
+  parts.push(``, `Reply in 1–3 sentences. Speak naturally, in first person. React from your own life and values, not as a neutral assistant.`);
   return parts.join('\n');
 }
 

@@ -11,6 +11,29 @@ interface AwakenResult {
   verified: boolean;
   rootHash: string;
   keyPath: string;
+  role?: string;
+  skills?: {
+    sessionCount: number;
+    domainKnowledge: Record<string, number>;
+    uxLiteracy: number;
+    technicalDepth: number;
+    communicationMaturity: number;
+  };
+}
+
+interface PersonaInsight {
+  ensName: string;
+  role: string;
+  sessionCount: number;
+  topDomains: string[];
+  keyContribution: string;
+}
+
+interface PersonaEvolution {
+  tokenId: number;
+  ensName: string;
+  newRootHash: string | null;
+  sessionCount: number;
 }
 
 interface SessionResult {
@@ -31,7 +54,9 @@ interface SessionResult {
     opportunities: string[];
     scores: { ease: number; novelty: number; trust: number; relevance: number };
     rawSummary: string;
+    personaInsights: PersonaInsight[];
   };
+  personaEvolutions: PersonaEvolution[];
 }
 
 export default function Home() {
@@ -174,17 +199,31 @@ export default function Home() {
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
                           <strong style={{ fontSize: 13 }}>{r.archetype}</strong>
                           <span style={{ color: '#9a9aa3', fontSize: 11, marginLeft: 8 }}>{r.ensName}</span>
+                          <div style={{ marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                            {r.role && (
+                              <span style={{ fontSize: 10, background: '#2a2a3a', color: '#7b65ff', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>
+                                {r.role.replace(/-/g, ' ')}
+                              </span>
+                            )}
+                            {r.skills && r.skills.sessionCount > 0 && (
+                              <span style={{ fontSize: 10, color: '#9a9aa3' }}>
+                                {r.skills.sessionCount} session{r.skills.sessionCount !== 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div style={{
-                          width: 18, height: 18, borderRadius: 4,
+                          width: 18, height: 18, borderRadius: 4, flexShrink: 0,
                           background: selected ? '#7b65ff' : 'transparent',
                           border: '2px solid ' + (selected ? '#7b65ff' : '#3a3a42'),
-                          flexShrink: 0,
                         }} />
                       </div>
+                      {r.skills && Object.keys(r.skills.domainKnowledge).length > 0 && (
+                        <DomainBars domains={r.skills.domainKnowledge} />
+                      )}
                       <p style={{ color: '#c5c5cc', fontSize: 13, margin: '6px 0 0', fontStyle: 'italic' }}>
                         "{r.applicationText}"
                       </p>
@@ -251,11 +290,52 @@ export default function Home() {
             <ColumnList title="Pain points" items={result.report.painPoints} />
             <ColumnList title="Contradictions" items={result.report.contradictions} />
             <ColumnList title="Opportunities" items={result.report.opportunities} />
+            {result.report.personaInsights?.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <h3 style={{ margin: '0 0 8px', fontSize: 14, color: '#c5c5cc' }}>Contributor insights</h3>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {result.report.personaInsights.map((pi, i) => (
+                    <div key={i} style={{ background: '#1a1a1f', borderRadius: 6, padding: '10px 12px' }}>
+                      <div style={{ display: 'flex', gap: 6, marginBottom: 4, alignItems: 'center' }}>
+                        <span style={{ fontSize: 10, background: '#2a2a3a', color: '#7b65ff', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>
+                          {pi.role.replace(/-/g, ' ')}
+                        </span>
+                        <span style={{ fontSize: 10, color: '#9a9aa3' }}>
+                          {pi.sessionCount} session{pi.sessionCount !== 1 ? 's' : ''}
+                          {pi.topDomains.length > 0 && ` · ${pi.topDomains.join(', ')}`}
+                        </span>
+                        <span style={{ fontSize: 10, color: '#9a9aa3', marginLeft: 'auto' }}>{pi.ensName}</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 13, color: '#e8e8ea' }}>{pi.keyContribution}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <p style={{ color: '#9a9aa3', marginTop: 16, fontSize: 13 }}>
               Transcript: <code style={codeStyle}>{result.transcriptPath}</code><br />
               Report on 0G: <code style={codeStyle}>{result.reportRootHash ?? 'upload skipped'}</code>
             </p>
           </section>
+
+          {result.personaEvolutions?.length > 0 && (
+            <section style={card}>
+              <h2 style={h2}>5. Persona evolution</h2>
+              <p style={{ color: '#9a9aa3', fontSize: 13, margin: '0 0 12px' }}>
+                {result.personaEvolutions.filter((e) => e.newRootHash).length} of {result.personaEvolutions.length} personas evolved — new brain versions stored on 0G.
+              </p>
+              <div style={{ display: 'grid', gap: 6 }}>
+                {result.personaEvolutions.map((e) => (
+                  <div key={e.tokenId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+                    <span><strong>{e.ensName}</strong> <span style={{ color: '#9a9aa3' }}>session {e.sessionCount}</span></span>
+                    {e.newRootHash
+                      ? <code style={{ ...codeStyle, color: '#4ade80' }}>{e.newRootHash.slice(0, 16)}…</code>
+                      : <span style={{ color: '#fb923c' }}>evolution skipped</span>}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </>
       )}
     </main>
@@ -281,6 +361,23 @@ function Scores({ s }: { s: { ease: number; novelty: number; trust: number; rele
         <div key={k} style={{ background: '#1a1a1f', padding: 10, borderRadius: 8, textAlign: 'center' }}>
           <div style={{ fontSize: 11, color: '#9a9aa3', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k}</div>
           <div style={{ fontSize: 22, fontWeight: 600 }}>{v}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DomainBars({ domains }: { domains: Record<string, number> }) {
+  const top = Object.entries(domains).filter(([, v]) => v >= 0.3).sort(([, a], [, b]) => b - a).slice(0, 4);
+  if (!top.length) return null;
+  return (
+    <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+      {top.map(([k, v]) => (
+        <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#9a9aa3' }}>
+          <span>{k}</span>
+          <div style={{ width: 36, height: 4, background: '#2a2a3a', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ width: `${Math.round(v * 100)}%`, height: '100%', background: '#7b65ff', borderRadius: 2 }} />
+          </div>
         </div>
       ))}
     </div>

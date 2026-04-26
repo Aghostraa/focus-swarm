@@ -8,8 +8,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, ChildProcess } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { generatePersona, mintPersona, type MintedPersona, type PersonaSpec } from '@focus-swarm/smith';
-import { runFromFile, type Report } from '@focus-swarm/synthesizer';
+import { generatePersona, mintPersona, evolvePersona, type MintedPersona, type PersonaSpec } from '@focus-swarm/smith';
+import { runFromFile, type Report, type PersonaMeta } from '@focus-swarm/synthesizer';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, '../../..');
@@ -24,6 +24,7 @@ export interface ReuseSpec {
   ensName: string;
   tokenId: number;
   archetype?: string;
+  spec?: PersonaSpec;
 }
 
 export interface ModeratorConfig {
@@ -42,6 +43,13 @@ export interface SessionInput {
   moderatorConfig?: ModeratorConfig;
 }
 
+export interface PersonaEvolution {
+  tokenId: number;
+  ensName: string;
+  newRootHash: string | null;
+  sessionCount: number;
+}
+
 export interface SessionArtifacts {
   sessionId: string;
   cohortId: number;
@@ -51,6 +59,7 @@ export interface SessionArtifacts {
   reportPath: string;
   reportRootHash: string | null;
   report: Report;
+  personaEvolutions: PersonaEvolution[];
 }
 
 interface PeerEntry { tokenId: string; role: string; peerId: string; apiPort: number; }
@@ -113,17 +122,20 @@ export async function runSession(input: SessionInput): Promise<SessionArtifacts>
   // 1. Mint new personas
   console.log(`[orch] minting ${input.archetypes.length} new personas, reusing ${reused.length}`);
   const minted: MintedPersona[] = [];
+  const mintedSpecs: PersonaSpec[] = [];
   for (const archetype of input.archetypes) {
     const spec: PersonaSpec = await generatePersona(input.targetMarket, archetype, input.cohortId);
     const m = await mintPersona(spec);
     minted.push(m);
+    mintedSpecs.push(spec);
     console.log(`[orch] minted ${m.ensName} tokenId=${m.tokenId}`);
   }
 
   // Combine new + reused into unified list for AXL slot assignment
-  const allPersonas: Array<{ tokenId: number; rootHash: string; keyPath: string; ensName: string; isReuse: boolean }> = [
-    ...minted.map((m) => ({ tokenId: m.tokenId, rootHash: m.rootHash, keyPath: path.join(REPO_ROOT, 'infra/axl/keys', `persona-${m.tokenId}.aes`), ensName: m.ensName, isReuse: false })),
-    ...reused.map((r) => ({ tokenId: r.tokenId, rootHash: r.rootHash, keyPath: r.keyPath, ensName: r.ensName, isReuse: true })),
+  interface SpawnedPersona { tokenId: number; rootHash: string; keyPath: string; ensName: string; isReuse: boolean; axlPeerId?: string; spec?: PersonaSpec; }
+  const allPersonas: SpawnedPersona[] = [
+    ...minted.map((m, i) => ({ tokenId: m.tokenId, rootHash: m.rootHash, keyPath: path.join(REPO_ROOT, 'infra/axl/keys', `persona-${m.tokenId}.aes`), ensName: m.ensName, isReuse: false, axlPeerId: m.axlPeerId, spec: mintedSpecs[i] })),
+    ...reused.map((r) => ({ tokenId: r.tokenId, rootHash: r.rootHash, keyPath: r.keyPath, ensName: r.ensName, isReuse: true, spec: r.spec })),
   ];
 
   // 2. Boot cohort (1 moderator + totalPersonas AXL nodes)
@@ -139,6 +151,8 @@ export async function runSession(input: SessionInput): Promise<SessionArtifacts>
   for (let i = 0; i < totalPersonas; i++) {
     const persona = allPersonas[i];
     const peer = personaPeers[i];
+    // Record the AXL peer ID for this slot (used for evolution matching)
+    allPersonas[i].axlPeerId = peer.peerId;
     const env: Record<string, string> = {
       AXL_API_URL: `http://127.0.0.1:${peer.apiPort}`,
       PEER_LIST_PATH: PEERS_FILE,
@@ -188,7 +202,57 @@ export async function runSession(input: SessionInput): Promise<SessionArtifacts>
   const transcriptPath = path.join(REPORTS_DIR, `${sessionId}.transcript.json`);
   if (!fs.existsSync(transcriptPath)) throw new Error(`transcript missing: ${transcriptPath}`);
   console.log(`[orch] synthesising report`);
-  const { report, reportPath, rootHash } = await runFromFile(transcriptPath, REPORTS_DIR);
+
+  // Build personaMeta from allPersonas (keyed by AXL peer ID)
+  const personaMeta: Record<string, PersonaMeta> = {};
+  for (const p of allPersonas) {
+    if (p.axlPeerId && p.spec) {
+      personaMeta[p.axlPeerId] = {
+        ensName: p.ensName,
+        role: p.spec.role ?? 'consumer',
+        sessionCount: p.spec.skills?.sessionCount ?? 0,
+        domainKnowledge: p.spec.skills?.domainKnowledge ?? {},
+      };
+    }
+  }
+
+  const { report, reportPath, rootHash } = await runFromFile(transcriptPath, REPORTS_DIR, Object.keys(personaMeta).length > 0 ? personaMeta : undefined);
+
+  // 8. Evolve personas post-session (best-effort, parallel)
+  console.log(`[orch] evolving ${allPersonas.length} personas`);
+  let transcriptData: { transcript: Array<{ speaker: string; text: string }> } = { transcript: [] };
+  try { transcriptData = JSON.parse(fs.readFileSync(transcriptPath, 'utf8')); } catch {}
+
+  const evolutionSettled = await Promise.allSettled(
+    allPersonas.map(async (p) => {
+      if (!p.spec || !p.axlPeerId) return null;
+      const myUtterances = transcriptData.transcript
+        .filter((t) => t.speaker === p.axlPeerId)
+        .map((t) => t.text);
+      const key = fs.readFileSync(p.keyPath);
+      return evolvePersona({
+        tokenId: p.tokenId,
+        ensName: p.ensName,
+        currentSpec: p.spec,
+        currentKey: key,
+        myUtterances,
+        reportThemes: report.themes,
+        reportOpportunities: report.opportunities,
+        productBrief: input.productBrief,
+      });
+    })
+  );
+
+  const personaEvolutions: PersonaEvolution[] = allPersonas.map((p, i) => {
+    const result = evolutionSettled[i];
+    const evolved = result.status === 'fulfilled' ? result.value : null;
+    return {
+      tokenId: p.tokenId,
+      ensName: p.ensName,
+      newRootHash: evolved?.newRootHash ?? null,
+      sessionCount: evolved?.updatedSkills.sessionCount ?? (p.spec?.skills?.sessionCount ?? 0),
+    };
+  });
 
   return {
     sessionId,
@@ -199,5 +263,6 @@ export async function runSession(input: SessionInput): Promise<SessionArtifacts>
     reportPath,
     reportRootHash: rootHash,
     report,
+    personaEvolutions,
   };
 }
