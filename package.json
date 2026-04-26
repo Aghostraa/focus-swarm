@@ -6,7 +6,7 @@
   "scripts": {
     "smoke:storage": "pnpm -F @focus-swarm/core smoke:storage",
     "smoke:compute": "pnpm -F @focus-swarm/core smoke:compute",
-    "deploy:contracts": "pnpm -F @focus-swarm/contracts deploy:testnet",
+    "deploy:contracts": "pnpm --filter @focus-swarm/contracts deploy:testnet",
     "spawn:axl": "bash infra/axl/spawn.sh",
     "session:run": "pnpm -F @focus-swarm/moderator start",
     "ui": "pnpm -F @focus-swarm/ui dev"

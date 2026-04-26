@@ -26,6 +26,9 @@ importers:
       '@openzeppelin/contracts':
         specifier: ^5.0.0
         version: 5.6.1
+      dotenv:
+        specifier: ^16.4.0
+        version: 16.6.1
       hardhat:
         specifier: ^2.22.0
         version: 2.28.6(bufferutil@4.1.0)(ts-node@10.9.2(@types/node@22.19.17)(typescript@5.9.3))(typescript@5.9.3)(utf-8-validate@5.0.10)
