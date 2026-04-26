@@ -1,0 +1,7 @@
+{
+  "network": "galileo",
+  "chainId": 16602,
+  "MintPersona": null,
+  "OffchainResolver": null,
+  "ENSParent": "focusgroup.eth"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@focus-swarm/persona",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/runtime.ts"
+  },
+  "dependencies": {
+    "@focus-swarm/core": "workspace:*",
+    "dotenv": "^16.4.0"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@focus-swarm/smith",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "mint": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@focus-swarm/core": "workspace:*",
+    "ethers": "^6.13.0"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@focus-swarm/orchestrator",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "run": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@focus-swarm/core": "workspace:*",
+    "@focus-swarm/smith": "workspace:*",
+    "@focus-swarm/synthesizer": "workspace:*",
+    "dotenv": "^16.4.0"
+  }
+}

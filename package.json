@@ -1,0 +1,20 @@
+{
+  "name": "focus-swarm",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Synthetic focus-group agents on 0G + AXL + ENS",
+  "scripts": {
+    "smoke:storage": "pnpm -F @focus-swarm/core smoke:storage",
+    "smoke:compute": "pnpm -F @focus-swarm/core smoke:compute",
+    "deploy:contracts": "pnpm -F @focus-swarm/contracts deploy:testnet",
+    "spawn:axl": "bash infra/axl/spawn.sh",
+    "session:run": "pnpm -F @focus-swarm/moderator start",
+    "ui": "pnpm -F @focus-swarm/ui dev"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "tsx": "^4.19.0",
+    "@types/node": "^22.0.0"
+  },
+  "packageManager": "pnpm@9.12.0"
+}
