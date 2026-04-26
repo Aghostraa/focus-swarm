@@ -22,6 +22,9 @@ const PRODUCT_BRIEF = process.env.PRODUCT_BRIEF ?? 'Generic product';
 const TOTAL_TURNS = Number(process.env.TOTAL_TURNS ?? 12);
 const TURN_INTERVAL_MS = Number(process.env.TURN_INTERVAL_MS ?? 2000);
 const REPORTS_DIR = process.env.REPORTS_DIR ?? './infra/deploy/reports';
+const RESEARCH_GOALS: string[] = process.env.RESEARCH_GOALS ? JSON.parse(process.env.RESEARCH_GOALS) : [];
+const MODERATION_STYLE: 'breadth' | 'deep-dive' | 'conflict-seeking' =
+  (process.env.MODERATION_STYLE as any) ?? 'breadth';
 
 interface PeerEntry { tokenId: string; peerId: string; archetype?: string; }
 
@@ -34,17 +37,27 @@ function nextSpeaker(peers: PeerEntry[], idx: number): PeerEntry {
   return peers[idx % peers.length];
 }
 
+function moderatorSystemPrompt(): string {
+  const styleInstructions: Record<typeof MODERATION_STYLE, string> = {
+    'breadth': 'Cover diverse angles — emotional, practical, social, financial. Move to a new angle each turn.',
+    'deep-dive': 'Follow threads relentlessly. Ask "why" and "tell me more" variations. Stay on the richest thread until exhausted.',
+    'conflict-seeking': 'Surface disagreements. Ask participants to react to each other\'s points directly. Push back on consensus.',
+  };
+  let prompt = `You are a focus-group moderator. Generate one concise probing question (one sentence) that pushes the discussion deeper. Build on the most recent comment. Avoid generic questions.\n\nStyle: ${styleInstructions[MODERATION_STYLE]}`;
+  if (RESEARCH_GOALS.length) {
+    prompt += `\n\nResearch goals to keep in mind:\n${RESEARCH_GOALS.map((g) => `- ${g}`).join('\n')}`;
+  }
+  return prompt;
+}
+
 async function generateProbe(turn: number, transcriptTail: TranscriptEntry[]): Promise<string> {
   if (turn === 0) {
-    return `We are testing this product: ${PRODUCT_BRIEF}. Share your honest first reaction.`;
+    const goalHint = RESEARCH_GOALS.length ? ` We're especially interested in: ${RESEARCH_GOALS[0]}.` : '';
+    return `We are testing this product: ${PRODUCT_BRIEF}.${goalHint} Share your honest first reaction.`;
   }
   const tail = transcriptTail.slice(-4).map((t) => `${t.speaker.slice(0, 8)}: ${t.text}`).join('\n');
   const r = await chat([
-    {
-      role: 'system',
-      content:
-        'You are a focus-group moderator. Generate one concise probing question (one sentence) that pushes the discussion deeper. Build on the most recent comment. Avoid generic questions.',
-    },
+    { role: 'system', content: moderatorSystemPrompt() },
     { role: 'user', content: `Product: ${PRODUCT_BRIEF}\nRecent transcript:\n${tail}` },
   ]);
   return r.text.replace(/^"|"$/g, '').slice(0, 300);

@@ -5,10 +5,12 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "mint": "tsx src/cli.ts"
+    "mint": "tsx src/cli.ts mint",
+    "awaken": "tsx src/cli.ts awaken"
   },
   "dependencies": {
     "@focus-swarm/core": "workspace:*",
+    "dotenv": "^16.4.0",
     "ethers": "^6.13.0"
   }
 }

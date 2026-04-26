@@ -18,19 +18,35 @@ const PEERS_FILE = path.join(REPO_ROOT, 'infra/axl/peers.local.json');
 const REPORTS_DIR = path.join(REPO_ROOT, 'infra/deploy/reports');
 const PIDS_FILE = path.join(REPO_ROOT, 'infra/axl/orchestrator.pids.local');
 
+export interface ReuseSpec {
+  rootHash: string;
+  keyPath: string;
+  ensName: string;
+  tokenId: number;
+  archetype?: string;
+}
+
+export interface ModeratorConfig {
+  researchGoals?: string[];
+  style?: 'breadth' | 'deep-dive' | 'conflict-seeking';
+}
+
 export interface SessionInput {
   targetMarket: string;
   productBrief: string;
-  archetypes: string[];          // one slug per persona
+  archetypes: string[];          // slugs for new personas to mint
+  reusePersonas?: ReuseSpec[];   // existing personas to pull in without minting
   cohortId: number;
   totalTurns?: number;
   turnIntervalMs?: number;
+  moderatorConfig?: ModeratorConfig;
 }
 
 export interface SessionArtifacts {
   sessionId: string;
   cohortId: number;
   personas: MintedPersona[];
+  reusedPersonas: ReuseSpec[];
   transcriptPath: string;
   reportPath: string;
   reportRootHash: string | null;
@@ -90,11 +106,12 @@ function killOrchestratedChildren(children: ChildProcess[]): void {
 
 export async function runSession(input: SessionInput): Promise<SessionArtifacts> {
   const sessionId = `s-${input.cohortId}-${Date.now().toString(36)}`;
-  const n = input.archetypes.length;
-  if (n < 2) throw new Error('need at least 2 personas');
+  const reused = input.reusePersonas ?? [];
+  const totalPersonas = input.archetypes.length + reused.length;
+  if (totalPersonas < 2) throw new Error('need at least 2 personas total (new + reused)');
 
-  // 1. Smith N personas
-  console.log(`[orch] minting ${n} personas`);
+  // 1. Mint new personas
+  console.log(`[orch] minting ${input.archetypes.length} new personas, reusing ${reused.length}`);
   const minted: MintedPersona[] = [];
   for (const archetype of input.archetypes) {
     const spec: PersonaSpec = await generatePersona(input.targetMarket, archetype, input.cohortId);
@@ -103,30 +120,36 @@ export async function runSession(input: SessionInput): Promise<SessionArtifacts>
     console.log(`[orch] minted ${m.ensName} tokenId=${m.tokenId}`);
   }
 
-  // 2. Boot cohort (1 moderator + N persona AXL nodes)
-  console.log(`[orch] booting AXL cohort`);
-  const peers = await bootCohort(n);
-  if (peers.length !== n + 1) throw new Error(`cohort ${peers.length}, expected ${n + 1}`);
+  // Combine new + reused into unified list for AXL slot assignment
+  const allPersonas: Array<{ tokenId: number; rootHash: string; keyPath: string; ensName: string; isReuse: boolean }> = [
+    ...minted.map((m) => ({ tokenId: m.tokenId, rootHash: m.rootHash, keyPath: path.join(REPO_ROOT, 'infra/axl/keys', `persona-${m.tokenId}.aes`), ensName: m.ensName, isReuse: false })),
+    ...reused.map((r) => ({ tokenId: r.tokenId, rootHash: r.rootHash, keyPath: r.keyPath, ensName: r.ensName, isReuse: true })),
+  ];
 
-  // 3. Spawn one persona runtime per persona AXL node
+  // 2. Boot cohort (1 moderator + totalPersonas AXL nodes)
+  console.log(`[orch] booting AXL cohort`);
+  const peers = await bootCohort(totalPersonas);
+  if (peers.length !== totalPersonas + 1) throw new Error(`cohort ${peers.length}, expected ${totalPersonas + 1}`);
+
+  // 3. Spawn one persona runtime per AXL node
   const personaPeers = peers.filter((p) => p.role === 'persona');
   const moderatorPeer = peers.find((p) => p.role === 'moderator')!;
   const children: ChildProcess[] = [];
 
-  for (let i = 0; i < n; i++) {
-    const persona = minted[i];
+  for (let i = 0; i < totalPersonas; i++) {
+    const persona = allPersonas[i];
     const peer = personaPeers[i];
     const env: Record<string, string> = {
       AXL_API_URL: `http://127.0.0.1:${peer.apiPort}`,
       PEER_LIST_PATH: PEERS_FILE,
       PERSONA_TOKEN_ID: String(persona.tokenId),
       PERSONA_ROOT_HASH: persona.rootHash,
-      PERSONA_KEY_PATH: path.join(REPO_ROOT, 'infra/axl/keys', `persona-${persona.tokenId}.aes`),
+      PERSONA_KEY_PATH: persona.keyPath,
     };
     const logFile = path.join(REPO_ROOT, 'infra/axl/logs', `persona-runtime-${persona.tokenId}.log`);
     const c = spawnDetached('pnpm', ['-F', '@focus-swarm/persona', 'start'], env, logFile);
     children.push(c);
-    console.log(`[orch] persona ${persona.tokenId} -> port ${peer.apiPort} pid=${c.pid}`);
+    console.log(`[orch] persona ${persona.tokenId}${persona.isReuse ? ' (reused)' : ''} -> port ${peer.apiPort} pid=${c.pid}`);
   }
 
   // 4. Wait briefly for persona runtimes to subscribe to /recv
@@ -142,6 +165,12 @@ export async function runSession(input: SessionInput): Promise<SessionArtifacts>
     TOTAL_TURNS: String(input.totalTurns ?? 12),
     TURN_INTERVAL_MS: String(input.turnIntervalMs ?? 2000),
     REPORTS_DIR,
+    ...(input.moderatorConfig?.researchGoals?.length
+      ? { RESEARCH_GOALS: JSON.stringify(input.moderatorConfig.researchGoals) }
+      : {}),
+    ...(input.moderatorConfig?.style
+      ? { MODERATION_STYLE: input.moderatorConfig.style }
+      : {}),
   };
   console.log(`[orch] running moderator`);
   const mod = await sh('pnpm', ['-F', '@focus-swarm/moderator', 'start'], { env: moderatorEnv });
@@ -165,6 +194,7 @@ export async function runSession(input: SessionInput): Promise<SessionArtifacts>
     sessionId,
     cohortId: input.cohortId,
     personas: minted,
+    reusedPersonas: reused,
     transcriptPath,
     reportPath,
     reportRootHash: rootHash,

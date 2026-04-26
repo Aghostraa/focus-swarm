@@ -51,6 +51,21 @@ app.get('/lookup/:name', (req, res) => {
   res.json({ name: req.params.name, addr: row.addr, texts: JSON.parse(row.texts) });
 });
 
+// Persona catalog — returns all registered personas, optionally filtered by target market.
+app.get('/personas', (req, res) => {
+  const market = (req.query.market as string | undefined)?.toLowerCase();
+  const rows = db.prepare('SELECT name, addr, texts FROM records').all() as any[];
+  let personas = rows.map((r) => ({ name: r.name, addr: r.addr, ...JSON.parse(r.texts) }));
+  if (market) {
+    const words = market.split(/\s+/).filter(Boolean);
+    personas = personas.filter((p) => {
+      const tm = (p['agent.target_market'] ?? '').toLowerCase();
+      return tm && words.some((w) => tm.includes(w));
+    });
+  }
+  res.json(personas);
+});
+
 // EIP-3668 callback endpoint — to be implemented in phase 2 (signing + ABI encoding per OffchainResolver).
 app.get('/ccip/:sender/:data', (_req, res) => {
   res.status(501).json({ error: 'TODO phase2: EIP-3668 signed response' });

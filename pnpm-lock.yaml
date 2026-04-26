@@ -114,6 +114,9 @@ importers:
       '@focus-swarm/core':
         specifier: workspace:*
         version: link:../core
+      dotenv:
+        specifier: ^16.4.0
+        version: 16.6.1
       ethers:
         specifier: ^6.13.0
         version: 6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)

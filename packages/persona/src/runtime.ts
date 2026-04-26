@@ -28,6 +28,7 @@ interface PersonaSpec {
   mediaDiet: string[];
   techLiteracy: string;
   communicationStyle: string;
+  dialogueSamples?: string[];
 }
 
 interface PersonaState {
@@ -54,7 +55,7 @@ async function loadSpec(): Promise<PersonaSpec> {
 }
 
 function buildSystemPrompt(spec: PersonaSpec): string {
-  return [
+  const parts = [
     `You roleplay as a focus-group panelist. Stay strictly in character.`,
     `Archetype: ${spec.archetype}`,
     `Life story: ${spec.lifeStory}`,
@@ -63,9 +64,13 @@ function buildSystemPrompt(spec: PersonaSpec): string {
     `Daily media diet: ${spec.mediaDiet.join(', ')}`,
     `Tech literacy: ${spec.techLiteracy}`,
     `Communication style: ${spec.communicationStyle}`,
-    ``,
-    `Reply in 1–3 sentences. Speak naturally, in first person. React from your own life and values, not as a neutral assistant. If asked about a product, lean into specific concerns shaped by your background.`,
-  ].join('\n');
+  ];
+  if (spec.dialogueSamples?.length) {
+    parts.push(``, `Voice examples — this is how you actually talk:`);
+    spec.dialogueSamples.forEach((s) => parts.push(`"${s}"`));
+  }
+  parts.push(``, `Reply in 1–3 sentences. Speak naturally, in first person. React from your own life and values, not as a neutral assistant. If asked about a product, lean into specific concerns shaped by your background.`);
+  return parts.join('\n');
 }
 
 function loadPeerList(): { tokenId: string; peerId: string }[] {

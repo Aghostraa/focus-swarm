@@ -10,10 +10,12 @@ import { ethers } from 'ethers';
 import {
   chat,
   uploadEncrypted,
+  downloadDecrypted,
   getWallet,
   loadEd25519PubkeyHex,
 } from '@focus-swarm/core';
 import type { PersonaSpec, MintedPersona } from './types.js';
+import { fetchGroundTruth, type GroundTruth } from './ground-truth.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, '../../..');
@@ -26,21 +28,49 @@ function loadAddresses(): { MintPersona: string | null; ENSParent: string } {
   return JSON.parse(fs.readFileSync(ADDRESSES_PATH, 'utf8'));
 }
 
-const SYSTEM_PROMPT = `You generate plausible focus-group panelists for product research.
-Output a single JSON object with fields:
+function buildSystemPrompt(gt: GroundTruth): string {
+  const { big5, wdFacts, seedPersona } = gt;
+
+  let prompt = `You generate plausible focus-group panelists for product research.
+Output a single JSON object with these fields:
 - lifeStory: 2-4 sentences, formative experiences and current life context
 - values: 4-6 short value tags (e.g. "frugality", "self-expression")
 - traumas: 1-3 short emotional load-bearing events shaping their decisions
 - mediaDiet: 4-6 platforms or sources they consume daily
 - techLiteracy: one of "low", "medium", "high"
-- communicationStyle: one phrase capturing how they talk
+- communicationStyle: one phrase capturing how they talk (tone, verbal tics, style)
+- dialogueSamples: array of 4 short utterances (1-2 sentences each) in this person's exact voice — realistic things they'd say when reviewing a product
 
 JSON only. No prose around it.`;
 
+  prompt += `\n\nPersonality anchors (Big 5, 0–1): openness=${big5.openness}, conscientiousness=${big5.conscientiousness}, extraversion=${big5.extraversion}, agreeableness=${big5.agreeableness}, neuroticism=${big5.neuroticism}. Let these shape lifeStory, communicationStyle, and dialogue tone.`;
+
+  if (wdFacts.length) {
+    prompt += `\n\nBehavioral ground truth (real-world facts to weave into backstory and values — use for specificity, not copy-paste):\n${wdFacts.map((f) => `- ${f}`).join('\n')}`;
+  }
+
+  if (seedPersona) {
+    prompt += `\n\n--- EXAMPLE OUTPUT (different archetype, same format) ---\n${JSON.stringify({
+      lifeStory: seedPersona.lifeStory,
+      values: seedPersona.values,
+      traumas: seedPersona.traumas,
+      mediaDiet: seedPersona.mediaDiet,
+      techLiteracy: seedPersona.techLiteracy,
+      communicationStyle: seedPersona.communicationStyle,
+      dialogueSamples: seedPersona.dialogueSamples ?? [],
+    }, null, 2)}\n--- END EXAMPLE ---`;
+  }
+
+  return prompt;
+}
+
 export async function generatePersona(targetMarket: string, archetype: string, cohortId: number): Promise<PersonaSpec> {
+  const DEFAULT_GT: GroundTruth = { big5: { openness: 0.60, conscientiousness: 0.55, extraversion: 0.55, agreeableness: 0.58, neuroticism: 0.52 }, wdFacts: [], seedPersona: null };
+  const gt = await fetchGroundTruth(archetype).catch(() => DEFAULT_GT);
+  const systemPrompt = buildSystemPrompt(gt);
   const userPrompt = `Target market: ${targetMarket}\nArchetype slug: ${archetype}\nCohort: ${cohortId}\nReturn JSON.`;
   const r = await chat([
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
   ]);
   if (!r.verified) throw new Error('persona generation not verified — refusing to proceed');
@@ -56,6 +86,8 @@ export async function generatePersona(targetMarket: string, archetype: string, c
     mediaDiet: json.mediaDiet ?? [],
     techLiteracy: json.techLiteracy ?? 'medium',
     communicationStyle: json.communicationStyle ?? '',
+    wdFacts: gt.wdFacts.length ? gt.wdFacts : undefined,
+    dialogueSamples: Array.isArray(json.dialogueSamples) ? json.dialogueSamples : undefined,
   };
 }
 
@@ -124,6 +156,8 @@ export async function mintPersona(spec: PersonaSpec): Promise<MintedPersona> {
       'agent.axl_peer': axlPeerId,
       'agent.archetype': spec.archetype,
       'agent.resume': `0g://${rootHash}`,
+      'agent.target_market': spec.targetMarket,
+      'agent.featured': 'false',
     });
   } catch (e) {
     console.warn('[smith] ens register failed (continuing):', (e as Error).message);
@@ -145,3 +179,82 @@ export async function mintPersona(spec: PersonaSpec): Promise<MintedPersona> {
 }
 
 export type { PersonaSpec, MintedPersona };
+
+export interface AwakenResult {
+  ensName: string;
+  tokenId: number;
+  archetype: string;
+  targetMarket: string;
+  applicationText: string;
+  verified: boolean;
+  rootHash: string;
+  keyPath: string;
+}
+
+/**
+ * Wake existing catalog personas whose target_market overlaps with `market`.
+ * Each matching persona loads its brain from 0G Storage and generates a short
+ * expression of interest in the proposed research (verified via TeeML).
+ */
+export async function awakenPersonas(market: string, brief: string, limit = 6): Promise<AwakenResult[]> {
+  const gatewayUrl = process.env.ENS_GATEWAY_URL ?? 'http://localhost:8787';
+  const res = await fetch(`${gatewayUrl}/personas?market=${encodeURIComponent(market)}`);
+  if (!res.ok) throw new Error(`gateway ${res.status}: ${await res.text()}`);
+  const catalog: any[] = await res.json();
+
+  const candidates = catalog.slice(0, limit);
+  const results: AwakenResult[] = [];
+
+  for (const p of candidates) {
+    const rootHash = (p['agent.resume'] ?? '').replace('0g://', '');
+    const inft = p['agent.inft'] ?? '';
+    const tokenId = Number(inft.split(':')[1] ?? 0);
+    const keyPath = path.join(KEYS_DIR, `persona-${tokenId}.aes`);
+
+    if (!rootHash || !fs.existsSync(keyPath)) {
+      console.warn(`[awaken] skipping ${p.name} — key or rootHash missing`);
+      continue;
+    }
+
+    let spec: PersonaSpec | null = null;
+    try {
+      const key = fs.readFileSync(keyPath);
+      const blob = await downloadDecrypted(rootHash, key);
+      spec = JSON.parse(blob.toString());
+    } catch (e) {
+      console.warn(`[awaken] ${p.name} brain load failed:`, (e as Error).message);
+      continue;
+    }
+
+    const systemPrompt = `You are ${spec!.archetype}. ${spec!.lifeStory}
+Your values: ${spec!.values.join(', ')}. Communication style: ${spec!.communicationStyle}.
+In one or two sentences, in your own voice, say whether you'd be interested in participating in focus group research on this topic, and why or why not.`;
+
+    let applicationText = '';
+    let verified = false;
+    try {
+      const r = await chat([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Research topic: "${brief}"\nTarget market: "${market}"` },
+      ]);
+      applicationText = r.text.slice(0, 300);
+      verified = r.verified;
+    } catch (e) {
+      console.warn(`[awaken] ${p.name} chat failed:`, (e as Error).message);
+      continue;
+    }
+
+    results.push({
+      ensName: p.name,
+      tokenId,
+      archetype: p['agent.archetype'] ?? '',
+      targetMarket: p['agent.target_market'] ?? '',
+      applicationText,
+      verified,
+      rootHash,
+      keyPath,
+    });
+  }
+
+  return results;
+}
