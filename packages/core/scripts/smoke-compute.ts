@@ -3,12 +3,12 @@
 import { ensureFunded, chat, findProvider } from '../src/compute.js';
 
 async function main() {
-  console.log('[smoke] ensure funded');
-  await ensureFunded(3);
-
   console.log('[smoke] discover provider');
-  const p = await findProvider('qwen-2.5-7b-instruct');
+  const p = await findProvider('qwen/qwen-2.5-7b-instruct');
   console.log('[smoke] provider', p);
+
+  console.log('[smoke] ensure funded');
+  await ensureFunded(3, p.provider);
 
   console.log('[smoke] chat');
   const r = await chat([

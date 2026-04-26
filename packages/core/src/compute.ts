@@ -2,8 +2,11 @@
 // Source: ../0g-doc/docs/developer-hub/building-on-0g/compute-network/inference.md
 
 import { ethers } from 'ethers';
-import { createZGComputeNetworkBroker } from '@0glabs/0g-serving-broker';
+import { createRequire } from 'module';
 import { RPC_URL, PRIVATE_KEY, COMPUTE_MODEL } from './config.js';
+
+// CJS require avoids Node.js v22 ESM static-link failure on the broker's chunked re-exports
+const { createZGComputeNetworkBroker } = createRequire(import.meta.url)('@0glabs/0g-serving-broker');
 
 export interface ChatMsg {
   role: 'system' | 'user' | 'assistant';
@@ -31,14 +34,30 @@ export async function getBroker() {
   return _broker;
 }
 
-/** One-time deposit. Min 3 0G for ledger creation per docs. Idempotent: existing ledger returns silently. */
-export async function ensureFunded(amount = 3): Promise<void> {
+/**
+ * Create/top-up ledger account, then allocate a provider sub-account.
+ * addLedger creates the account; depositFund tops up an existing one.
+ * Both paths are idempotent — safe to re-run.
+ */
+export async function ensureFunded(amount = 3, providerAddr?: string): Promise<void> {
   const broker = await getBroker();
   try {
-    await broker.ledger.depositFund(amount);
+    await broker.ledger.addLedger(amount);
   } catch (e) {
     const msg = (e as Error).message ?? '';
-    if (!/already exists|insufficient/i.test(msg)) throw e;
+    if (/already exists/i.test(msg)) {
+      await broker.ledger.depositFund(amount).catch(() => {});
+    } else {
+      throw e;
+    }
+  }
+  if (providerAddr) {
+    try {
+      await broker.ledger.transferFund(providerAddr, 'inference', BigInt(1) * BigInt(10 ** 18));
+    } catch (e) {
+      const msg = (e as Error).message ?? '';
+      if (!/already exists|insufficient/i.test(msg)) throw e;
+    }
   }
 }
 
