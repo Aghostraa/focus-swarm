@@ -61,6 +61,7 @@ export interface TranscriptEntry {
   speaker: string;
   text: string;
   ts: number;
+  speakerLabel?: string;
 }
 
 /** Convenience: subscribe to /recv until a stop signal. */

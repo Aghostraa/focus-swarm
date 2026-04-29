@@ -1,0 +1,34 @@
+{
+  "sessionId": "s-1777226440-mog2qi0h",
+  "productBrief": "focus-swarm: a synthetic focus group platform where AI personas with persistent memory debate your product. Personas are iNFTs on 0G Storage, talk over AXL P2P mesh, get verified by TeeML, and grow smarter each session. No recruiting, no scheduling — run a 9-turn focus group in minutes.",
+  "participantCount": 3,
+  "utteranceCount": 4,
+  "themes": [
+    "credibility and scalability",
+    "empathy and transparency",
+    "ethical considerations and bias"
+  ],
+  "contradictions": [
+    "synthetic personas vs. real users",
+    "use of blockchain for verification vs. skepticism about edge case handling"
+  ],
+  "painPoints": [
+    "lack of concrete data on performance",
+    "predictability and potential biases in synthetic persona interactions",
+    "maintaining consistency over time"
+  ],
+  "opportunities": [
+    "integrating blockchain for verification and transparency",
+    "prioritizing validation against real user feedback",
+    "enhancing the models to handle edge cases and reduce biases"
+  ],
+  "scores": {
+    "ease": 6,
+    "novelty": 8,
+    "trust": 4,
+    "relevance": 7
+  },
+  "rawSummary": "Panelists recognized the innovative aspect of focus-swarm but expressed concerns about the credibility and scalability of synthetic personas versus real users, as well as the potential for predictability and biases. They suggested prioritizing validation against real user feedback and integrating blockchain for transparency and ethical verification.",
+  "generatedAt": 1777226849743,
+  "personaInsights": []
+}

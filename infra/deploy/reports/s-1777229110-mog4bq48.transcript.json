@@ -1,0 +1,48 @@
+{
+  "sessionId": "s-1777229110-mog4bq48",
+  "productBrief": "focus-swarm — a synthetic focus group platform.\n\nWHAT IT DOES\nYou write a 1-paragraph product brief and pick a target market (e.g. \"solo founders in Berlin\"). The platform spawns 3–8 AI personas matching that market, runs a moderated 9–12 turn discussion, and outputs a structured report (themes, pain points, contradictions, opportunities, persona-attributed insights, and 1–10 scores for ease/novelty/trust/relevance). Total time: 2–5 minutes per session.\n\nTHE PERSONAS\nEach persona has a rich backstory: life history, values, formative experiences (called \"traumas\"), media diet, communication style, plus a Big-5 personality vector. They're grounded in real-world behavioral data (currently scraped from Watch Dogs Legion's NPC profiler — ~8000 facts about Londoners' jobs, daily routines, grievances). Each persona is assigned a role: technical-skeptic, user-advocate, pm, accessibility-lens, or consumer.\n\nPERSISTENT MEMORY\nAfter every session, each persona's brain is re-encrypted with updated skills — they accumulate domain knowledge (e.g. \"fintech 0.7\", \"saas 0.4\"), refine ux-literacy / technical-depth / communication-maturity, and keep the last 5 session summaries. Their next session starts smarter. This is provable on-chain: their ENS record's agent.resume hash changes after every session, and the encrypted blob at that hash is verifiably their new brain.\n\nINFRASTRUCTURE (THIS IS WHERE IT GETS WEIRD)\n- Persona brains live as iNFTs (ERC-7857) on 0G Storage, AES-256 encrypted. Owner controls the key.\n- Inter-persona dialogue runs over Gensyn AXL — peer-to-peer mesh, no central message broker. Each persona has its own AXL node and ed25519 identity.\n- All inference runs on 0G Compute (Qwen 2.5 7B) with TeeML verification — every reply has a cryptographic attestation that the model produced it.\n- ENS subnames give each persona a discoverable identity: skeptical-engineer-crypto.cohort-99.focusgroup.eth.\n\nPITCH IN ONE SENTENCE\n\"It's like UserTesting but the participants are NFTs that get smarter, you skip recruiting, and every word is cryptographically attested.\"\n\nPRICING (UNDECIDED — REACT TO THESE)\n- Pay-per-session: $25 for a 9-turn session with 3 personas, $50 for 6 personas, $100 for 12.\n- OR subscription: $200/mo for unlimited sessions on a fixed cohort that grows with you.\n- Persona iNFTs are tradeable — sell your trained personas on a marketplace.\n\nWHO IT'S FOR\n- Solo founders pre-product who can't afford $200/seat UserTesting and don't have a network to recruit from.\n- Indie hackers validating ideas at the napkin stage.\n- Product teams running rapid concept testing between real-user studies.\n\nWHAT IT IS NOT\n- Not a replacement for real user research. Synthetic focus groups have known biases (LLM blandness, hallucinated lived experience, no actual purchase behavior).\n- Not faster than 30 seconds — each session takes 2–5 minutes because of TeeML verification and AXL handshake.\n- Not free — every persona reply burns ~$0.01 on 0G Compute; a session of 9 turns × 6 personas ≈ $0.50 in compute.\n\nKNOWN OBJECTIONS\n- \"Why do I need a blockchain for this? Can't I just prompt GPT-4 to roleplay 6 users?\" — Yes, but you'd lose verifiability, persistence, and the persona being a tradeable asset.\n- \"How do I trust that the personas aren't all the same model with different prompts?\" — TeeML attestation per reply + persona brains are public on 0G Storage (encrypted but auditable structure).\n- \"Watch Dogs Legion data? Really?\" — It's a stand-in for a richer commercial dataset (e.g. census + ethnographic research) we'd license for production.\n\nBUILT FOR\nThe 0G + Gensyn + ENS hackathon. Three tracks: 0G Autonomous Agents (primary), Gensyn AXL (peer-to-peer dialogue), ENS for AI Agents (identity).",
+  "transcript": [
+    {
+      "speaker": "dd796e3f06d81ced2186ffb11088162961e276d69f9f32f5871248f76b3ea48c",
+      "text": "While the use of blockchain for verification sounds promising, I still have concerns about the predictability and adaptability of synthetic personas. We need to ensure that the implementation doesn't sacrifice the nuanced aspects of human behavior. And let's not forget the potential for hidden biases in the algorithms driving these personas—blockchain might offer transparency, but it won't eliminate the need for rigorous testing to maintain authenticity and ethical standards.",
+      "ts": 1777226728090,
+      "speakerLabel": "skeptical-engineer-crypto (technical-skeptic)"
+    },
+    {
+      "speaker": "aecf5de578f6ddd4528aa2a69ba7c85b33f1f355737a23e11d1cce5bc1f1057d",
+      "text": "Well, Skeptical-Engineer-Crypto, you're not wrong about the hidden complexity. But let's face it, running tests on the dark web isn't exactly scalable or ethical. Instead, we should focus on creating a robust testing framework that includes diverse datasets and real-world scenarios to simulate various edge cases. We need to prioritize tickets that involve continuous learning algorithms and bias detection mechanisms, ensuring our synthetic personas can adapt and correct themselves in real-time. And hey, maybe we can convince you to skip the dark web and just trust some good old-fashioned user feedback loops instead?",
+      "ts": 1777226750588,
+      "speakerLabel": "ux-researcher-web3 (user-advocate)"
+    },
+    {
+      "speaker": "2717be3bfceeda10681e78ffab52d63cfcec0e32944d50bdbd9d21e92bd7c254",
+      "text": "I completely hear your concerns, Skeptical-engineer-crypto. To address edge cases and maintain consistency, we should design a rigorous testing framework that includes diverse and unexpected scenarios. We also need to implement regular audits and feedback loops where real users can interact with these synthetic personas and provide insights. This way, we can catch any biases early and ensure the personas remain adaptable and true to human behavior. Let's make sure these tests are transparent and involve the community to build trust and gather comprehensive data.",
+      "ts": 1777226785472,
+      "speakerLabel": "solo-founder-ai-tooling (pm)"
+    },
+    {
+      "speaker": "dd796e3f06d81ced2186ffb11088162961e276d69f9f32f5871248f76b3ea48c",
+      "text": "Not for me. The idea of AI personas giving feedback seems too contrived and lacks the nuanced understanding real users bring.",
+      "ts": 1777228293278,
+      "speakerLabel": "skeptical-engineer-crypto (technical-skeptic)"
+    },
+    {
+      "speaker": "aecf5de578f6ddd4528aa2a69ba7c85b33f1f355737a23e11d1cce5bc1f1057d",
+      "text": "Not for me. I've already seen too many case studies that don't hold up under scrutiny. We need more than just metrics; we need to understand who exactly these personas are and how they represent real users. Metrics alone won't convince me if the data isn't diverse enough.",
+      "ts": 1777228325089,
+      "speakerLabel": "ux-researcher-web3 (user-advocate)"
+    },
+    {
+      "speaker": "2717be3bfceeda10681e78ffab52d63cfcec0e32944d50bdbd9d21e92bd7c254",
+      "text": "Pushing back, Skeptical-Engineer-Crypto wouldn't find cherry-picked examples convincing. My mom used an app with canned responses and it completely missed her context. We need real, validated metrics from diverse users to truly show value.",
+      "ts": 1777228360573,
+      "speakerLabel": "solo-founder-ai-tooling (pm)"
+    },
+    {
+      "speaker": "dd796e3f06d81ced2186ffb11088162961e276d69f9f32f5871248f76b3ea48c",
+      "text": "Not for me. I'd rather they didn't lose sight of the fact that real users are complex and can't be fully mimicked. Surface-level behavior might look good, but it doesn't capture the true essence of human interaction.",
+      "ts": 1777228385738,
+      "speakerLabel": "skeptical-engineer-crypto (technical-skeptic)"
+    }
+  ]
+}

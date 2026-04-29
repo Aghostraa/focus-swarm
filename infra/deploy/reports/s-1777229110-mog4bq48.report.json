@@ -1,0 +1,55 @@
+{
+  "sessionId": "s-1777229110-mog4bq48",
+  "productBrief": "focus-swarm — a synthetic focus group platform.\n\nWHAT IT DOES\nYou write a 1-paragraph product brief and pick a target market (e.g. \"solo founders in Berlin\"). The platform spawns 3–8 AI personas matching that market, runs a moderated 9–12 turn discussion, and outputs a structured report (themes, pain points, contradictions, opportunities, persona-attributed insights, and 1–10 scores for ease/novelty/trust/relevance). Total time: 2–5 minutes per session.\n\nTHE PERSONAS\nEach persona has a rich backstory: life history, values, formative experiences (called \"traumas\"), media diet, communication style, plus a Big-5 personality vector. They're grounded in real-world behavioral data (currently scraped from Watch Dogs Legion's NPC profiler — ~8000 facts about Londoners' jobs, daily routines, grievances). Each persona is assigned a role: technical-skeptic, user-advocate, pm, accessibility-lens, or consumer.\n\nPERSISTENT MEMORY\nAfter every session, each persona's brain is re-encrypted with updated skills — they accumulate domain knowledge (e.g. \"fintech 0.7\", \"saas 0.4\"), refine ux-literacy / technical-depth / communication-maturity, and keep the last 5 session summaries. Their next session starts smarter. This is provable on-chain: their ENS record's agent.resume hash changes after every session, and the encrypted blob at that hash is verifiably their new brain.\n\nINFRASTRUCTURE (THIS IS WHERE IT GETS WEIRD)\n- Persona brains live as iNFTs (ERC-7857) on 0G Storage, AES-256 encrypted. Owner controls the key.\n- Inter-persona dialogue runs over Gensyn AXL — peer-to-peer mesh, no central message broker. Each persona has its own AXL node and ed25519 identity.\n- All inference runs on 0G Compute (Qwen 2.5 7B) with TeeML verification — every reply has a cryptographic attestation that the model produced it.\n- ENS subnames give each persona a discoverable identity: skeptical-engineer-crypto.cohort-99.focusgroup.eth.\n\nPITCH IN ONE SENTENCE\n\"It's like UserTesting but the participants are NFTs that get smarter, you skip recruiting, and every word is cryptographically attested.\"\n\nPRICING (UNDECIDED — REACT TO THESE)\n- Pay-per-session: $25 for a 9-turn session with 3 personas, $50 for 6 personas, $100 for 12.\n- OR subscription: $200/mo for unlimited sessions on a fixed cohort that grows with you.\n- Persona iNFTs are tradeable — sell your trained personas on a marketplace.\n\nWHO IT'S FOR\n- Solo founders pre-product who can't afford $200/seat UserTesting and don't have a network to recruit from.\n- Indie hackers validating ideas at the napkin stage.\n- Product teams running rapid concept testing between real-user studies.\n\nWHAT IT IS NOT\n- Not a replacement for real user research. Synthetic focus groups have known biases (LLM blandness, hallucinated lived experience, no actual purchase behavior).\n- Not faster than 30 seconds — each session takes 2–5 minutes because of TeeML verification and AXL handshake.\n- Not free — every persona reply burns ~$0.01 on 0G Compute; a session of 9 turns × 6 personas ≈ $0.50 in compute.\n\nKNOWN OBJECTIONS\n- \"Why do I need a blockchain for this? Can't I just prompt GPT-4 to roleplay 6 users?\" — Yes, but you'd lose verifiability, persistence, and the persona being a tradeable asset.\n- \"How do I trust that the personas aren't all the same model with different prompts?\" — TeeML attestation per reply + persona brains are public on 0G Storage (encrypted but auditable structure).\n- \"Watch Dogs Legion data? Really?\" — It's a stand-in for a richer commercial dataset (e.g. census + ethnographic research) we'd license for production.\n\nBUILT FOR\nThe 0G + Gensyn + ENS hackathon. Three tracks: 0G Autonomous Agents (primary), Gensyn AXL (peer-to-peer dialogue), ENS for AI Agents (identity).",
+  "participantCount": 3,
+  "utteranceCount": 7,
+  "themes": [
+    "Concerns about the predictability and adaptability of synthetic personas",
+    "Need for a robust testing framework and bias detection mechanisms",
+    "Importance of diverse and unexpected scenarios in testing"
+  ],
+  "contradictions": [
+    "dd796e3f vs aecf5de5 on the necessity of real user feedback versus synthetic personas giving feedback",
+    "aecf5de5 vs 2717be3b on the importance of diverse datasets versus focusing on real-world scenarios"
+  ],
+  "painPoints": [
+    "Lack of nuanced understanding compared to real users",
+    "Potential for hidden biases in the algorithms driving synthetic personas"
+  ],
+  "opportunities": [
+    "Implement continuous learning algorithms for adaptation",
+    "Design a rigorous testing framework including diverse scenarios",
+    "Conduct regular audits and involve real users in feedback loops"
+  ],
+  "scores": {
+    "ease": 5,
+    "novelty": 8,
+    "trust": 4,
+    "relevance": 7
+  },
+  "rawSummary": "The focus group highlighted concerns about the predictability and adaptability of synthetic personas, emphasizing the need for a robust testing framework and diverse datasets to mitigate biases. Participants suggested implementing continuous learning algorithms and involving real users in feedback loops to enhance trust and relevance.",
+  "generatedAt": 1777229793681,
+  "personaInsights": [
+    {
+      "ensName": "skeptical-engineer-crypto.cohort-99.focusgroup.eth",
+      "role": "technical-skeptic",
+      "sessionCount": 0,
+      "topDomains": [],
+      "keyContribution": "Synthetic personas lack the complexity and unpredictability of human behavior, which could lead to inaccurate product predictions."
+    },
+    {
+      "ensName": "ux-researcher-web3.cohort-99.focusgroup.eth",
+      "role": "user-advocate",
+      "sessionCount": 0,
+      "topDomains": [],
+      "keyContribution": "Users expect personalized experiences, and synthetic personas must be designed to reflect this nuance without bias."
+    },
+    {
+      "ensName": "solo-founder-ai-tooling.cohort-99.focusgroup.eth",
+      "role": "pm",
+      "sessionCount": 1,
+      "topDomains": [],
+      "keyContribution": "Incorporating a wide range of diverse scenarios is crucial for identifying and mitigating potential biases in synthetic persona testing."
+    }
+  ]
+}

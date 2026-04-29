@@ -80,17 +80,30 @@ export async function findProvider(model: string): Promise<{ provider: string; e
 /**
  * Verified chat completion. Always runs `processResponse()` — TeeML verification is the
  * point of using 0G Compute. If verification returns false, the call throws.
+ * Retries up to 4× on 429 with exponential backoff (7s, 14s, 28s, 56s).
  */
 export async function chat(messages: ChatMsg[], model: string = COMPUTE_MODEL): Promise<ChatResult> {
   const broker = await getBroker();
   const { provider, endpoint, model: resolvedModel } = await findProvider(model);
-  const headers = await broker.inference.getRequestHeaders(provider);
 
-  const res = await fetch(`${endpoint}/chat/completions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...headers },
-    body: JSON.stringify({ messages, model: resolvedModel }),
-  });
+  let attempt = 0;
+  let res: Response;
+  while (true) {
+    const headers = await broker.inference.getRequestHeaders(provider);
+    res = await fetch(`${endpoint}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify({ messages, model: resolvedModel }),
+    });
+    if (res.status === 429 && attempt < 4) {
+      const delay = 7000 * Math.pow(2, attempt);
+      console.warn(`[compute] 429 rate-limited, retry ${attempt + 1}/4 after ${delay / 1000}s`);
+      await new Promise((r) => setTimeout(r, delay));
+      attempt++;
+      continue;
+    }
+    break;
+  }
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`compute ${res.status}: ${body.slice(0, 400)}`);

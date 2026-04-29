@@ -11,6 +11,7 @@ interface AwakenResult {
   verified: boolean;
   rootHash: string;
   keyPath: string;
+  spec?: any;
   role?: string;
   skills?: {
     sessionCount: number;
@@ -79,10 +80,59 @@ interface SessionResult {
 
 export default function Home() {
   // Proposal form
-  const [market, setMarket] = useState('Gen-Z renters in Berlin who use BeReal');
-  const [brief, setBrief] = useState('A subscription habit tracker that auto-snaps your habits via your phone camera.');
-  const [goals, setGoals] = useState('Understand checkout anxiety\nFind willingness-to-pay signals');
-  const [style, setStyle] = useState<'breadth' | 'deep-dive' | 'conflict-seeking'>('breadth');
+  const [market, setMarket] = useState('AI agent developers and startup founders building on 0G, AXL, or ENS who need fast synthetic user research');
+  const [brief, setBrief] = useState(
+`focus-swarm — a synthetic focus group platform.
+
+WHAT IT DOES
+You write a 1-paragraph product brief and pick a target market (e.g. "solo founders in Berlin"). The platform spawns 3–8 AI personas matching that market, runs a moderated 9–12 turn discussion, and outputs a structured report (themes, pain points, contradictions, opportunities, persona-attributed insights, and 1–10 scores for ease/novelty/trust/relevance). Total time: 2–5 minutes per session.
+
+THE PERSONAS
+Each persona has a rich backstory: life history, values, formative experiences (called "traumas"), media diet, communication style, plus a Big-5 personality vector. They're grounded in real-world behavioral data (currently scraped from Watch Dogs Legion's NPC profiler — ~8000 facts about Londoners' jobs, daily routines, grievances). Each persona is assigned a role: technical-skeptic, user-advocate, pm, accessibility-lens, or consumer.
+
+PERSISTENT MEMORY
+After every session, each persona's brain is re-encrypted with updated skills — they accumulate domain knowledge (e.g. "fintech 0.7", "saas 0.4"), refine ux-literacy / technical-depth / communication-maturity, and keep the last 5 session summaries. Their next session starts smarter. This is provable on-chain: their ENS record's agent.resume hash changes after every session, and the encrypted blob at that hash is verifiably their new brain.
+
+INFRASTRUCTURE (THIS IS WHERE IT GETS WEIRD)
+- Persona brains live as iNFTs (ERC-7857) on 0G Storage, AES-256 encrypted. Owner controls the key.
+- Inter-persona dialogue runs over Gensyn AXL — peer-to-peer mesh, no central message broker. Each persona has its own AXL node and ed25519 identity.
+- All inference runs on 0G Compute (Qwen 2.5 7B) with TeeML verification — every reply has a cryptographic attestation that the model produced it.
+- ENS subnames give each persona a discoverable identity: skeptical-engineer-crypto.cohort-99.focusgroup.eth.
+
+PITCH IN ONE SENTENCE
+"It's like UserTesting but the participants are NFTs that get smarter, you skip recruiting, and every word is cryptographically attested."
+
+PRICING (UNDECIDED — REACT TO THESE)
+- Pay-per-session: $25 for a 9-turn session with 3 personas, $50 for 6 personas, $100 for 12.
+- OR subscription: $200/mo for unlimited sessions on a fixed cohort that grows with you.
+- Persona iNFTs are tradeable — sell your trained personas on a marketplace.
+
+WHO IT'S FOR
+- Solo founders pre-product who can't afford $200/seat UserTesting and don't have a network to recruit from.
+- Indie hackers validating ideas at the napkin stage.
+- Product teams running rapid concept testing between real-user studies.
+
+WHAT IT IS NOT
+- Not a replacement for real user research. Synthetic focus groups have known biases (LLM blandness, hallucinated lived experience, no actual purchase behavior).
+- Not faster than 30 seconds — each session takes 2–5 minutes because of TeeML verification and AXL handshake.
+- Not free — every persona reply burns ~$0.01 on 0G Compute; a session of 9 turns × 6 personas ≈ $0.50 in compute.
+
+KNOWN OBJECTIONS
+- "Why do I need a blockchain for this? Can't I just prompt GPT-4 to roleplay 6 users?" — Yes, but you'd lose verifiability, persistence, and the persona being a tradeable asset.
+- "How do I trust that the personas aren't all the same model with different prompts?" — TeeML attestation per reply + persona brains are public on 0G Storage (encrypted but auditable structure).
+- "Watch Dogs Legion data? Really?" — It's a stand-in for a richer commercial dataset (e.g. census + ethnographic research) we'd license for production.
+
+BUILT FOR
+The 0G + Gensyn + ENS hackathon. Three tracks: 0G Autonomous Agents (primary), Gensyn AXL (peer-to-peer dialogue), ENS for AI Agents (identity).`
+  );
+  const [goals, setGoals] = useState(
+`Is the iNFT/persistence angle a real differentiator or a gimmick wrapping a GPT prompt?
+What's the actual price point at which someone would buy this over running their own prompts?
+Which of the 3 user segments (solo founders, indie hackers, product teams) would actually convert, and which would churn?
+Is "synthetic focus group" the right framing, or does it pre-anchor people to "fake research"?
+What's the smallest version of this that's actually useful — and which features are dead weight?`
+  );
+  const [style, setStyle] = useState<'breadth' | 'deep-dive' | 'conflict-seeking'>('conflict-seeking');
 
   // Awaken state
   const [awakening, setAwakening] = useState(false);
@@ -91,8 +141,8 @@ export default function Home() {
   const [selectedReuse, setSelectedReuse] = useState<Set<number>>(new Set());
 
   // Session builder
-  const [archetypes, setArchetypes] = useState('genz-renter-berlin,solo-founder-mumbai');
-  const [turns, setTurns] = useState(9);
+  const [archetypes, setArchetypes] = useState('skeptical-ux-researcher-london,solo-founder-berlin,technical-pm-singapore');
+  const [turns, setTurns] = useState(18);
 
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -100,7 +150,7 @@ export default function Home() {
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [result, setResult] = useState<SessionResult | null>(null);
   const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
-  const [thinkingPersona, setThinkingPersona] = useState<string | null>(null);
+  const [thinkingPersonas, setThinkingPersonas] = useState<Set<string>>(new Set());
   const [sessionDone, setSessionDone] = useState(false);
   const running = sessionId !== null && !sessionDone && !result;
 
@@ -137,14 +187,14 @@ export default function Home() {
     setSessionError(null);
     setResult(null);
     setLiveEvents([]);
-    setThinkingPersona(null);
+    setThinkingPersonas(new Set());
     setSessionDone(false);
     setSessionId(null);
     setParticipants([]);
 
     const reusePersonas = (awakenResults ?? [])
       .filter((r) => selectedReuse.has(r.tokenId))
-      .map((r) => ({ tokenId: r.tokenId, ensName: r.ensName, rootHash: r.rootHash, keyPath: r.keyPath, archetype: r.archetype, role: r.role }));
+      .map((r) => ({ tokenId: r.tokenId, ensName: r.ensName, rootHash: r.rootHash, keyPath: r.keyPath, archetype: r.archetype, role: r.role, spec: (r as any).spec }));
 
     let sid: string;
     try {
@@ -170,17 +220,34 @@ export default function Home() {
 
     // Subscribe to SSE stream
     const evtSource = new EventSource(`/api/sessions/stream?id=${sid}`);
+    const ensureParticipant = (e: LiveEvent) => {
+      if (!e.archetype) return;
+      setParticipants((prev) => {
+        if (prev.some((p) => p.archetype === e.archetype)) return prev;
+        return [...prev, { archetype: e.archetype!, role: e.role ?? 'consumer', ensName: e.ensName ?? '' }];
+      });
+    };
     evtSource.onmessage = (e) => {
       try {
         const event = JSON.parse(e.data) as LiveEvent;
         if (event.type === 'thinking') {
-          setThinkingPersona(event.archetype ?? null);
+          ensureParticipant(event);
+          if (event.archetype) {
+            setThinkingPersonas((prev) => new Set(prev).add(event.archetype!));
+          }
         } else if (event.type === 'utterance') {
-          setThinkingPersona(null);
+          ensureParticipant(event);
+          if (event.archetype) {
+            setThinkingPersonas((prev) => {
+              const next = new Set(prev);
+              next.delete(event.archetype!);
+              return next;
+            });
+          }
           setLiveEvents((prev) => [...prev, event]);
         } else if (event.type === 'session-end') {
           setSessionDone(true);
-          setThinkingPersona(null);
+          setThinkingPersonas(new Set());
         } else if (event.type === 'result') {
           setResult((event as any).result as SessionResult);
           evtSource.close();
@@ -293,8 +360,8 @@ export default function Home() {
           <Field label="Generate new personas (comma-separated slugs)">
             <input value={archetypes} onChange={(e) => setArchetypes(e.target.value)} style={input} />
           </Field>
-          <Field label="Total turns">
-            <input type="number" min={4} max={30} value={turns} onChange={(e) => setTurns(Number(e.target.value))} style={input} />
+          <Field label="Target utterances (rounds = ceil(utterances / personas))">
+            <input type="number" min={4} max={60} value={turns} onChange={(e) => setTurns(Number(e.target.value))} style={input} />
           </Field>
 
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 4 }}>
@@ -324,7 +391,7 @@ export default function Home() {
           {participants.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(participants.length, 3)}, 1fr)`, gap: 10, marginBottom: 16 }}>
               {participants.map((p, i) => {
-                const isThinking = thinkingPersona === p.archetype;
+                const isThinking = thinkingPersonas.has(p.archetype);
                 const lastMsg = [...liveEvents].reverse().find((e) => e.archetype === p.archetype && e.type === 'utterance');
                 return (
                   <div key={i} style={{

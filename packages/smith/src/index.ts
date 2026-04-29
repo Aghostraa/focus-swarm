@@ -75,10 +75,10 @@ function mergeDeltas(base: Record<string, number>, deltas: Record<string, number
 
 function inferRole(archetype: string, spec: PersonaSpec): PersonaRole {
   const slug = archetype.toLowerCase();
-  if (spec.techLiteracy === 'high' && /engineer|developer|coder|programmer|tech|software/.test(slug)) return 'technical-skeptic';
-  if (/founder|startup|ceo|pm|product.manager/.test(slug)) return 'pm';
-  if (spec.techLiteracy === 'low' && /boomer|senior|retired|older|parent/.test(slug)) return 'accessibility-lens';
-  if (/ux|design|renter|urban|genz|gen.z|young|student/.test(slug)) return 'user-advocate';
+  if (/engineer|developer|coder|programmer|hacker|sysadmin|devops|architect|crypto|blockchain|backend|fullstack/.test(slug)) return 'technical-skeptic';
+  if (/founder|startup|ceo|cto|pm|product.manager|operator|growth/.test(slug)) return 'pm';
+  if (/ux|usability|designer|researcher|advocate|accessibility(?!.*low)|genz|gen.z|student|renter/.test(slug)) return 'user-advocate';
+  if (spec.techLiteracy === 'low' || /boomer|senior|retired|elderly|grandparent/.test(slug)) return 'accessibility-lens';
   return 'consumer';
 }
 
@@ -334,6 +334,9 @@ export interface AwakenResult {
   verified: boolean;
   rootHash: string;
   keyPath: string;
+  spec: PersonaSpec;
+  role?: string;
+  skills?: PersonaSkills;
 }
 
 /**
@@ -398,6 +401,9 @@ In one or two sentences, in your own voice, say whether you'd be interested in p
       verified,
       rootHash,
       keyPath,
+      spec: spec!,
+      role: spec!.role,
+      skills: spec!.skills,
     });
   }
 

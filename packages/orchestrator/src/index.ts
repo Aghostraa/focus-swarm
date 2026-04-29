@@ -168,22 +168,53 @@ export async function runSession(input: SessionInput): Promise<SessionArtifacts>
     console.log(`[orch] persona ${persona.tokenId}${persona.isReuse ? ' (reused)' : ''} -> port ${peer.apiPort} pid=${c.pid}`);
   }
 
-  // 4. Wait briefly for persona runtimes to subscribe to /recv
-  await new Promise((s) => setTimeout(s, 4000));
+  // 4. Wait for persona runtimes to load brains + subscribe.
+  // Cold-cache brain download from 0G testnet can take 30-90s; use a readiness file.
+  console.log(`[orch] waiting for personas to load brains (cold cache may take ~60s)…`);
+  const readyDeadline = Date.now() + 180_000; // 3 min cap
+  const readyPath = (tokenId: number) => path.join(REPO_ROOT, 'infra/axl/logs', `persona-runtime-${tokenId}.log`);
+  let lastReady = -1;
+  while (Date.now() < readyDeadline) {
+    const readyCount = allPersonas.filter((p) => {
+      try {
+        const log = fs.readFileSync(readyPath(p.tokenId), 'utf8');
+        return log.includes(`[persona ${p.tokenId}] ready`);
+      } catch { return false; }
+    }).length;
+    if (readyCount !== lastReady) {
+      console.log(`[orch] ${readyCount}/${allPersonas.length} personas ready`);
+      lastReady = readyCount;
+    }
+    if (readyCount === allPersonas.length) break;
+    await new Promise((s) => setTimeout(s, 2000));
+  }
+  if (lastReady < allPersonas.length) {
+    console.warn(`[orch] only ${lastReady}/${allPersonas.length} personas ready after timeout — proceeding anyway`);
+  }
+  // Extra grace period for pumpRecv subscription handshake
+  await new Promise((s) => setTimeout(s, 3000));
 
   // 5. Run moderator (in-process via child)
   fs.mkdirSync(REPORTS_DIR, { recursive: true });
   const eventsPath = path.join(REPORTS_DIR, `${sessionId}.events.ndjson`);
 
-  // Build peerId → persona metadata map for moderator event labelling
+  // Build peerId → persona metadata map for moderator event labelling.
+  // Reinfer role from archetype slug — older brains are baked with role='consumer'.
+  const reinferRole = (archetype: string | undefined, baked?: string): string => {
+    if (baked && baked !== 'consumer') return baked;
+    if (!archetype) return baked ?? 'consumer';
+    const s = archetype.toLowerCase();
+    if (/engineer|developer|coder|programmer|hacker|sysadmin|devops|architect|crypto|blockchain|backend|fullstack/.test(s)) return 'technical-skeptic';
+    if (/founder|startup|ceo|cto|pm|product.manager|operator|growth/.test(s)) return 'pm';
+    if (/ux|usability|designer|researcher|advocate|genz|gen.z|student|renter/.test(s)) return 'user-advocate';
+    if (/boomer|senior|retired|elderly|grandparent/.test(s)) return 'accessibility-lens';
+    return baked ?? 'consumer';
+  };
   const personaMap: Record<string, { archetype: string; role: string; ensName: string }> = {};
   for (const p of allPersonas) {
     if (p.axlPeerId) {
-      personaMap[p.axlPeerId] = {
-        archetype: p.spec?.archetype ?? p.ensName.split('.')[0],
-        role: p.spec?.role ?? 'consumer',
-        ensName: p.ensName,
-      };
+      const archetype = p.spec?.archetype ?? p.ensName.split('.')[0];
+      personaMap[p.axlPeerId] = { archetype, role: reinferRole(archetype, p.spec?.role), ensName: p.ensName };
     }
   }
 
@@ -225,9 +256,10 @@ export async function runSession(input: SessionInput): Promise<SessionArtifacts>
   const personaMeta: Record<string, PersonaMeta> = {};
   for (const p of allPersonas) {
     if (p.axlPeerId && p.spec) {
+      const archetype = p.spec.archetype ?? p.ensName.split('.')[0];
       personaMeta[p.axlPeerId] = {
         ensName: p.ensName,
-        role: p.spec.role ?? 'consumer',
+        role: reinferRole(archetype, p.spec.role),
         sessionCount: p.spec.skills?.sessionCount ?? 0,
         domainKnowledge: p.spec.skills?.domainKnowledge ?? {},
       };

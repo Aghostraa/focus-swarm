@@ -58,15 +58,19 @@ function moderatorSystemPrompt(): string {
   return prompt;
 }
 
-async function generateProbe(turn: number, transcriptTail: TranscriptEntry[]): Promise<string> {
-  if (turn === 0) {
+async function generateProbe(round: number, transcriptTail: TranscriptEntry[]): Promise<string> {
+  if (round === 0) {
     const goalHint = RESEARCH_GOALS.length ? ` We're especially interested in: ${RESEARCH_GOALS[0]}.` : '';
-    return `We are testing this product: ${PRODUCT_BRIEF}.${goalHint} Share your honest first reaction.`;
+    return `We are testing this product:\n\n${PRODUCT_BRIEF}\n\n${goalHint} Share your honest first reaction — pick the ONE thing that grabbed you (or annoyed you) most.`;
   }
-  const tail = transcriptTail.slice(-4).map((t) => `${t.speaker.slice(0, 8)}: ${t.text}`).join('\n');
+  const tail = transcriptTail.slice(-8).map((t) => {
+    const meta = PERSONA_MAP[t.speaker];
+    const label = meta ? `${meta.archetype} (${meta.role})` : t.speaker.slice(0, 8);
+    return `${label}: ${t.text}`;
+  }).join('\n');
   const r = await chat([
     { role: 'system', content: moderatorSystemPrompt() },
-    { role: 'user', content: `Product: ${PRODUCT_BRIEF}\nRecent transcript:\n${tail}` },
+    { role: 'user', content: `Product: ${PRODUCT_BRIEF}\n\nWhat the panel just said:\n${tail}\n\nWrite ONE follow-up question that pushes the discussion deeper. Surface a tension or unresolved point from the transcript above. Do NOT invent participant names — refer to them only by their archetype label. Keep it under 25 words.` },
   ]);
   return r.text.replace(/^"|"$/g, '').slice(0, 300);
 }
@@ -88,9 +92,11 @@ async function main() {
     axl,
     async (msg: SwarmMsg) => {
       if (msg.type === 'utterance') {
-        transcript.push({ speaker: msg.speaker, text: msg.text, ts: msg.ts });
-        await logAppend(transcriptStream, msg).catch(() => {});
         const meta = PERSONA_MAP[msg.speaker];
+        const speakerLabel = meta ? `${meta.archetype} (${meta.role})` : msg.speaker.slice(0, 8);
+        transcript.push({ speaker: msg.speaker, text: msg.text, ts: msg.ts, speakerLabel });
+        // Fire-and-forget — never block pumpRecv on slow 0G KV writes
+        logAppend(transcriptStream, msg).catch(() => {});
         emitEvent({ type: 'utterance', speaker: msg.speaker, archetype: meta?.archetype ?? msg.speaker.slice(0, 8), role: meta?.role ?? 'consumer', ensName: meta?.ensName ?? '', text: msg.text, ts: msg.ts });
         console.log(`[moderator] heard ${msg.speaker.slice(0, 8)}: ${msg.text.slice(0, 100)}`);
       }
@@ -98,30 +104,56 @@ async function main() {
     ac.signal,
   );
 
-  for (let turn = 0; turn < TOTAL_TURNS; turn++) {
-    const speaker = nextSpeaker(peers, turn);
-    const probe = await generateProbe(turn, transcript);
-    const meta = PERSONA_MAP[speaker.peerId];
-    emitEvent({ type: 'thinking', speaker: speaker.peerId, archetype: meta?.archetype ?? speaker.tokenId, role: meta?.role ?? 'consumer', probe, turn, ts: Date.now() });
-    const turnMsg: SwarmMsg = {
-      type: 'turn',
-      sessionId: SESSION_ID,
-      speaker: speaker.peerId,
-      prompt: probe,
-      transcriptTail: transcript.slice(-6),
-    };
-    console.log(`[moderator] turn ${turn} → ${speaker.archetype ?? speaker.tokenId} probe="${probe.slice(0, 60)}..."`);
-    await Promise.all(peers.map((p) => axl.send(p.peerId, turnMsg).catch(() => {})));
+  // Parallel rounds: each round, moderator asks one probe and ALL personas respond simultaneously.
+  // TOTAL_TURNS is reinterpreted as total target utterances; rounds = ceil(TOTAL_TURNS / peers.length).
+  const TOTAL_ROUNDS = Math.max(1, Math.ceil(TOTAL_TURNS / peers.length));
+  console.log(`[moderator] ${TOTAL_ROUNDS} parallel rounds × ${peers.length} personas = ${TOTAL_ROUNDS * peers.length} max utterances`);
+
+  for (let round = 0; round < TOTAL_ROUNDS; round++) {
+    const probe = await generateProbe(round, transcript);
+    console.log(`[moderator] round ${round} probe="${probe.slice(0, 80)}..."`);
+
+    // Emit thinking events for all personas at once
+    for (const p of peers) {
+      const meta = PERSONA_MAP[p.peerId];
+      emitEvent({ type: 'thinking', speaker: p.peerId, archetype: meta?.archetype ?? p.tokenId, role: meta?.role ?? 'consumer', probe, turn: round, ts: Date.now() });
+    }
+
+    // Snapshot transcript length BEFORE sending — personas that respond during stagger must count.
     const before = transcript.length;
-    const deadline = Date.now() + 30000;
-    while (transcript.length === before && Date.now() < deadline) {
-      await new Promise((s) => setTimeout(s, 200));
+
+    // Address each persona individually with a 7s stagger to avoid 0G Compute rate limit bursts.
+    // 0G Compute allows 10 req/min; staggering ensures requests spread across the window.
+    const transcriptTail = transcript.slice(-8);
+    for (let pi = 0; pi < peers.length; pi++) {
+      const p = peers[pi];
+      if (pi > 0) await new Promise((s) => setTimeout(s, 7000));
+      axl.send(p.peerId, {
+        type: 'turn',
+        sessionId: SESSION_ID,
+        speaker: p.peerId,
+        prompt: probe,
+        transcriptTail,
+      } as SwarmMsg).catch(() => {});
     }
-    if (transcript.length === before) {
-      console.warn(`[moderator] turn ${turn} timeout — speaker silent`);
-      emitEvent({ type: 'timeout', speaker: speaker.peerId, turn, ts: Date.now() });
+    // Wait for minReplies. Deadline accounts for stagger (7*(N-1)s) + 90s compute budget.
+    const minReplies = Math.max(1, Math.ceil(peers.length / 2));
+    const deadline = Date.now() + 7000 * (peers.length - 1) + 90000;
+    while (transcript.length - before < minReplies && Date.now() < deadline) {
+      await new Promise((s) => setTimeout(s, 250));
     }
-    await new Promise((s) => setTimeout(s, TURN_INTERVAL_MS));
+    // Grace period for remaining stragglers — up to 30s after minReplies reached
+    const graceUntil = Date.now() + 30000;
+    const expected = before + peers.length;
+    while (transcript.length < expected && Date.now() < graceUntil) {
+      await new Promise((s) => setTimeout(s, 250));
+    }
+    const replied = transcript.length - before;
+    if (replied < peers.length) {
+      const silent = peers.length - replied;
+      console.warn(`[moderator] round ${round}: ${silent}/${peers.length} silent`);
+      emitEvent({ type: 'timeout', speaker: 'multiple', turn: round, ts: Date.now() });
+    }
   }
 
   const endMsg: SwarmMsg = { type: 'session-end', sessionId: SESSION_ID };

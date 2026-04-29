@@ -1,0 +1,18 @@
+{
+  "sessionId": "s-1777417598-moj8jo3q",
+  "productBrief": "focus-swarm: A synthetic focus-group platform where AI personas with persistent memory debate products. Researchers define a target market; system mints archetype iNFTs encrypted on 0G Storage, spawns them as AXL peer-to-peer nodes, runs moderated multi-turn session, synthesizes findings. Personas accumulate skills across sessions. Key tensions: synthetic vs real insight, cost per session ($0.50), slower 0G Compute vs GPT-4, personas can only speak not act, session quality depends on archetype diversity.",
+  "transcript": [
+    {
+      "speaker": "57d4b3fd74996e675e188786a1cc6c09e28133f35c6927daef676256394b7d0f",
+      "text": "The idea of persistent AI personas debating is intriguing, but the cost per session seems high for such a slow compute platform. Not for me.",
+      "ts": 1777417628980,
+      "speakerLabel": "skeptical-engineer-crypto (technical-skeptic)"
+    },
+    {
+      "speaker": "2717be3bfceeda10681e78ffab52d63cfcec0e32944d50bdbd9d21e92bd7c254",
+      "text": "The synthetic vs real insight tension really stands out. Who churns first if the feedback feels too abstract to be useful?",
+      "ts": 1777417628980,
+      "speakerLabel": "solo-founder-berlin (pm)"
+    }
+  ]
+}

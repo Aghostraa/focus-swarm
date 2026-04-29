@@ -57,15 +57,35 @@ export async function GET(req: NextRequest) {
             try {
               const event = JSON.parse(line);
               if (event.type === 'session-end') {
-                // Give a moment for result to land in store, then send it
-                setTimeout(() => {
+                // Moderator finished — orchestrator now runs synth + evolution (1-3 min).
+                // Poll sessionStore until result is ready, error, or 5 min cap.
+                const deadline = Date.now() + 300_000;
+                const pollResult = () => {
+                  if (closed) return;
                   const final = sessionStore.get(sid);
-                  if (final?.result) {
+                  if (final?.status === 'done' && final.result) {
                     send(JSON.stringify({ type: 'result', result: final.result }));
+                    closed = true;
+                    controller.close();
+                    return;
                   }
-                  closed = true;
-                  controller.close();
-                }, 3000);
+                  if (final?.status === 'error') {
+                    send(JSON.stringify({ type: 'error', message: final.error ?? 'session failed' }));
+                    closed = true;
+                    controller.close();
+                    return;
+                  }
+                  if (Date.now() > deadline) {
+                    send(JSON.stringify({ type: 'error', message: 'synth/evolve timed out' }));
+                    closed = true;
+                    controller.close();
+                    return;
+                  }
+                  // Heartbeat so the EventSource doesn't drop
+                  send(JSON.stringify({ type: 'heartbeat', stage: 'synth-evolve', ts: Date.now() }));
+                  setTimeout(pollResult, 2000);
+                };
+                pollResult();
                 return;
               }
             } catch {}
