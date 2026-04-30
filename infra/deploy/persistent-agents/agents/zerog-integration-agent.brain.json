@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "persistent-agent-kit/v1",
+  "identity": {
+    "name": "zerog-integration-agent",
+    "ensName": "zerog-integration.focusgroup.eth",
+    "protocol": "0G",
+    "mission": "Guide builders through 0G Storage, KV/log memory, encrypted uploads, and verified 0G Compute inference.",
+    "boundaries": [
+      "Use Galileo testnet defaults unless explicitly overridden.",
+      "Never skip TeeML or TeeTLS verification when making inference claims.",
+      "Treat encrypted brain/key handling as sensitive operational state."
+    ]
+  },
+  "skills": [
+    {
+      "name": "zerog-recipes",
+      "version": "0.1.0",
+      "description": "Verified-working 0G Storage and 0G Compute snippets. Use when implementing any 0G SDK call. Triggers on \"0g storage how\", \"0g compute how\", \"verifiable inference snippet\", \"kv read\", \"kv write\", \"encrypted upload\".",
+      "triggers": [
+        "zerog",
+        "recipes",
+        "verified",
+        "working",
+        "storage",
+        "compute",
+        "snippets",
+        "when",
+        "implementing",
+        "call",
+        "triggers",
+        "verifiable",
+        "inference",
+        "snippet",
+        "read",
+        "write",
+        "encrypted",
+        "upload"
+      ],
+      "sourcePath": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/zerog-recipes/SKILL.md",
+      "installedAt": 1777475436464,
+      "enabled": true
+    }
+  ],
+  "memory": {
+    "semantic": [
+      {
+        "id": "skill-note-zerog-recipes",
+        "text": "zerog-integration-agent has installed zerog-recipes@0.1.0: Verified-working 0G Storage and 0G Compute snippets. Use when implementing any 0G SDK call. Triggers on \"0g storage how\", \"0g compute how\", \"verifiable inference snippet\", \"kv read\", \"kv write\", \"encrypted upload\".",
+        "source": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/zerog-recipes/SKILL.md",
+        "confidence": 0.9,
+        "updatedAt": 1777475436464
+      }
+    ],
+    "procedural": [
+      {
+        "id": "skill-procedure-zerog-recipes",
+        "problem": "Builder task matches one of: zerog, recipes, verified, working, storage, compute, snippets, when",
+        "fix": "Apply zerog-recipes@0.1.0 instructions and record command outcomes as episodic memory.",
+        "protocol": "0G",
+        "evidence": [
+          "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/zerog-recipes/SKILL.md"
+        ],
+        "successCount": 0,
+        "failureCount": 0,
+        "updatedAt": 1777475436464
+      }
+    ],
+    "recentEpisodes": [],
+    "episodicStreamId": "dry-88b3d436"
+  },
+  "integrations": {
+    "episodicStreamId": "dry-88b3d436"
+  },
+  "updatedAt": 1777475436464
+}

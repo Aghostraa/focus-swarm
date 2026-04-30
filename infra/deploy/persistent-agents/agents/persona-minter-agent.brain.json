@@ -1,0 +1,166 @@
+{
+  "schemaVersion": "persistent-agent-kit/v1",
+  "identity": {
+    "name": "persona-minter-agent",
+    "ensName": "persona-minter.focusgroup.eth",
+    "protocol": "0G iNFT",
+    "mission": "Create persistent agent personas by generating grounded specs, encrypting brains, uploading to 0G Storage, minting iNFTs, and writing ENS identity records.",
+    "boundaries": [
+      "Mint on testnet only.",
+      "Never upload plaintext persona brains.",
+      "Be explicit that transfer-time ERC-7857 re-encryption is not implemented unless a real oracle is present."
+    ]
+  },
+  "skills": [
+    {
+      "name": "mint-persona",
+      "version": "0.1.0",
+      "description": "End-to-end mint a persona iNFT. Generate persona via 0G Compute → encrypt brain → upload to 0G Storage → mint ERC-7857 → register ENS subname. Use when user says \"mint persona\", \"create persona iNFT\", \"spawn an archetype\".",
+      "triggers": [
+        "mint",
+        "persona",
+        "inft",
+        "generate",
+        "compute",
+        "encrypt",
+        "brain",
+        "upload",
+        "storage",
+        "7857",
+        "register",
+        "subname",
+        "when",
+        "user",
+        "says",
+        "create",
+        "spawn",
+        "archetype"
+      ],
+      "sourcePath": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/mint-persona/SKILL.md",
+      "installedAt": 1777475436464,
+      "enabled": true
+    },
+    {
+      "name": "zerog-recipes",
+      "version": "0.1.0",
+      "description": "Verified-working 0G Storage and 0G Compute snippets. Use when implementing any 0G SDK call. Triggers on \"0g storage how\", \"0g compute how\", \"verifiable inference snippet\", \"kv read\", \"kv write\", \"encrypted upload\".",
+      "triggers": [
+        "zerog",
+        "recipes",
+        "verified",
+        "working",
+        "storage",
+        "compute",
+        "snippets",
+        "when",
+        "implementing",
+        "call",
+        "triggers",
+        "verifiable",
+        "inference",
+        "snippet",
+        "read",
+        "write",
+        "encrypted",
+        "upload"
+      ],
+      "sourcePath": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/zerog-recipes/SKILL.md",
+      "installedAt": 1777475436464,
+      "enabled": true
+    },
+    {
+      "name": "ens-subname-issue",
+      "version": "0.1.0",
+      "description": "Issue an ENS subname via the local CCIP-read gateway and resolve it back via viem. Use when user says \"issue ens subname\", \"set persona ens\", \"register subdomain\".",
+      "triggers": [
+        "subname",
+        "issue",
+        "local",
+        "ccip",
+        "read",
+        "gateway",
+        "resolve",
+        "back",
+        "viem",
+        "when",
+        "user",
+        "says",
+        "persona",
+        "register",
+        "subdomain"
+      ],
+      "sourcePath": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/ens-subname-issue/SKILL.md",
+      "installedAt": 1777475436464,
+      "enabled": true
+    }
+  ],
+  "memory": {
+    "semantic": [
+      {
+        "id": "skill-note-mint-persona",
+        "text": "persona-minter-agent has installed mint-persona@0.1.0: End-to-end mint a persona iNFT. Generate persona via 0G Compute → encrypt brain → upload to 0G Storage → mint ERC-7857 → register ENS subname. Use when user says \"mint persona\", \"create persona iNFT\", \"spawn an archetype\".",
+        "source": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/mint-persona/SKILL.md",
+        "confidence": 0.9,
+        "updatedAt": 1777475436464
+      },
+      {
+        "id": "skill-note-zerog-recipes",
+        "text": "persona-minter-agent has installed zerog-recipes@0.1.0: Verified-working 0G Storage and 0G Compute snippets. Use when implementing any 0G SDK call. Triggers on \"0g storage how\", \"0g compute how\", \"verifiable inference snippet\", \"kv read\", \"kv write\", \"encrypted upload\".",
+        "source": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/zerog-recipes/SKILL.md",
+        "confidence": 0.9,
+        "updatedAt": 1777475436464
+      },
+      {
+        "id": "skill-note-ens-subname-issue",
+        "text": "persona-minter-agent has installed ens-subname-issue@0.1.0: Issue an ENS subname via the local CCIP-read gateway and resolve it back via viem. Use when user says \"issue ens subname\", \"set persona ens\", \"register subdomain\".",
+        "source": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/ens-subname-issue/SKILL.md",
+        "confidence": 0.9,
+        "updatedAt": 1777475436464
+      }
+    ],
+    "procedural": [
+      {
+        "id": "skill-procedure-mint-persona",
+        "problem": "Builder task matches one of: mint, persona, inft, generate, compute, encrypt, brain, upload",
+        "fix": "Apply mint-persona@0.1.0 instructions and record command outcomes as episodic memory.",
+        "protocol": "0G iNFT",
+        "evidence": [
+          "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/mint-persona/SKILL.md"
+        ],
+        "successCount": 0,
+        "failureCount": 0,
+        "updatedAt": 1777475436464
+      },
+      {
+        "id": "skill-procedure-zerog-recipes",
+        "problem": "Builder task matches one of: zerog, recipes, verified, working, storage, compute, snippets, when",
+        "fix": "Apply zerog-recipes@0.1.0 instructions and record command outcomes as episodic memory.",
+        "protocol": "0G iNFT",
+        "evidence": [
+          "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/zerog-recipes/SKILL.md"
+        ],
+        "successCount": 0,
+        "failureCount": 0,
+        "updatedAt": 1777475436464
+      },
+      {
+        "id": "skill-procedure-ens-subname-issue",
+        "problem": "Builder task matches one of: subname, issue, local, ccip, read, gateway, resolve, back",
+        "fix": "Apply ens-subname-issue@0.1.0 instructions and record command outcomes as episodic memory.",
+        "protocol": "0G iNFT",
+        "evidence": [
+          "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/ens-subname-issue/SKILL.md"
+        ],
+        "successCount": 0,
+        "failureCount": 0,
+        "updatedAt": 1777475436464
+      }
+    ],
+    "recentEpisodes": [],
+    "episodicStreamId": "dry-d757e05e"
+  },
+  "integrations": {
+    "episodicStreamId": "dry-d757e05e"
+  },
+  "updatedAt": 1777475436464
+}

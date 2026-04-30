@@ -9,6 +9,9 @@
     "deploy:contracts": "pnpm --filter @focus-swarm/contracts deploy:testnet",
     "spawn:axl": "bash infra/axl/spawn.sh",
     "session:run": "pnpm -F @focus-swarm/moderator start",
+    "protocol-twins": "pnpm -F @focus-swarm/kit protocol-twins",
+    "agents:build": "pnpm -F @focus-swarm/kit build-agents",
+    "e2e:kit": "bash e2e-kit/quickstart.sh",
     "ui": "pnpm -F @focus-swarm/ui dev"
   },
   "devDependencies": {

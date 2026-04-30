@@ -1,0 +1,16 @@
+{
+  "name": "@focus-swarm/kit",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "protocol-twins": "tsc && node dist/examples/protocol-twins/run-demo.js",
+    "build-agents": "tsc && node dist/examples/persistent-agents/build-agents.js"
+  },
+  "dependencies": {
+    "@focus-swarm/core": "workspace:*",
+    "dotenv": "^16.4.0"
+  }
+}

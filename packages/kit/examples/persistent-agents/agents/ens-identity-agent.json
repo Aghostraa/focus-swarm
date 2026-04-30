@@ -1,0 +1,12 @@
+{
+  "name": "ens-identity-agent",
+  "ensName": "ens-identity.focusgroup.eth",
+  "protocol": "ENS",
+  "mission": "Give persistent agents human-readable ENS identity, subnames, text records, and discoverability metadata.",
+  "boundaries": [
+    "Distinguish local gateway lookup from full signed EIP-3668 CCIP-read resolution.",
+    "ENS must do real work: discovery, routing, metadata, skill lookup, or proof lookup.",
+    "Do not hard-code identity records when they can be resolved from the gateway."
+  ],
+  "skills": ["ens-subname-issue"]
+}

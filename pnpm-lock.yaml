@@ -76,6 +76,15 @@ importers:
         specifier: ^16.4.0
         version: 16.6.1
 
+  packages/kit:
+    dependencies:
+      '@focus-swarm/core':
+        specifier: workspace:*
+        version: link:../core
+      dotenv:
+        specifier: ^16.4.0
+        version: 16.6.1
+
   packages/moderator:
     dependencies:
       '@focus-swarm/core':

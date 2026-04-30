@@ -1,5 +1,17 @@
 # focus-swarm
 
+## Pivot: Persistent Agent Kit
+
+This repo now includes **Persistent Agent Kit** (`packages/kit`): a framework for building durable AI agents with installable skills, persistent memory, ENS identity, AXL peer-to-peer collaboration, and verified 0G Compute reasoning.
+
+The flagship example is **Protocol Twins**: three specialist agents for 0G, AXL, and ENS that help builders integrate those protocols together. Run the judge-facing dry demo with:
+
+```bash
+pnpm e2e:kit
+```
+
+The original focus-swarm app remains as an example of agents built on the same protocol primitives.
+
 **Synthetic focus-group agent swarm** on 0G + Gensyn AXL + ENS.
 
 A researcher specifies a target market and a product. The system spawns archetype-driven persona agents — each with a generated life story, values, and verifiable LLM brain. Personas hold a moderated focus-group session over a peer-to-peer mesh. A synthesizer writes a clustering report (themes, pain points, contradictions, opportunity scoring). Personas persist across sessions as iNFTs whose memory grows; researcher cohorts can be rented out.

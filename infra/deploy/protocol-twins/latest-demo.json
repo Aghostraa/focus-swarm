@@ -1,0 +1,65 @@
+{
+  "task": "Create an ENS-discoverable persistent agent that stores its brain on 0G and communicates over AXL.",
+  "upload": false,
+  "registerEns": false,
+  "verified": false,
+  "replies": [
+    {
+      "agent": "axl-builder",
+      "protocol": "AXL",
+      "reply": "axl-builder would apply skills [spawn-axl-cohort, run-focus-session] to handle the AXL part of: Create an ENS-discoverable persistent agent that stores its brain on 0G and communicates over AXL."
+    },
+    {
+      "agent": "ens-builder",
+      "protocol": "ENS",
+      "reply": "ens-builder would apply skills [ens-subname-issue] to handle the ENS part of: Create an ENS-discoverable persistent agent that stores its brain on 0G and communicates over AXL."
+    },
+    {
+      "agent": "zerog-builder",
+      "protocol": "0G",
+      "reply": "zerog-builder would apply skills [mint-persona] to handle the 0G part of: Create an ENS-discoverable persistent agent that stores its brain on 0G and communicates over AXL."
+    }
+  ],
+  "proof": {
+    "schemaVersion": "persistent-agent-proof/v1",
+    "sessionId": "protocol-twins-mok65gyw",
+    "task": "Create an ENS-discoverable persistent agent that stores its brain on 0G and communicates over AXL.",
+    "agents": [
+      {
+        "name": "axl-builder",
+        "ensName": "axl-builder.focusgroup.eth",
+        "protocol": "AXL",
+        "verifiedReasoningCount": 0,
+        "installedSkills": [
+          "spawn-axl-cohort@0.1.0",
+          "run-focus-session@0.1.0"
+        ]
+      },
+      {
+        "name": "ens-builder",
+        "ensName": "ens-builder.focusgroup.eth",
+        "protocol": "ENS",
+        "verifiedReasoningCount": 0,
+        "installedSkills": [
+          "ens-subname-issue@0.1.0"
+        ]
+      },
+      {
+        "name": "zerog-builder",
+        "ensName": "zerog-builder.focusgroup.eth",
+        "protocol": "0G",
+        "verifiedReasoningCount": 0,
+        "installedSkills": [
+          "zerog-recipes@0.1.0",
+          "mint-persona@0.1.0"
+        ]
+      }
+    ],
+    "artifacts": {
+      "mode": "dry-run",
+      "skillsSource": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills"
+    },
+    "generatedAt": 1777474042664
+  },
+  "proofRootHash": null
+}

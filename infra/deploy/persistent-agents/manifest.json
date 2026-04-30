@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "persistent-agent-manifest/v1",
+  "generatedAt": 1777475436466,
+  "agents": [
+    {
+      "name": "axl-mesh-agent",
+      "ensName": "axl-mesh.focusgroup.eth",
+      "protocol": "AXL",
+      "skills": [
+        "spawn-axl-cohort@0.1.0"
+      ],
+      "episodicStreamId": "dry-494d4a03",
+      "skillManifestRootHash": null
+    },
+    {
+      "name": "ens-identity-agent",
+      "ensName": "ens-identity.focusgroup.eth",
+      "protocol": "ENS",
+      "skills": [
+        "ens-subname-issue@0.1.0"
+      ],
+      "episodicStreamId": "dry-ee36d0b9",
+      "skillManifestRootHash": null
+    },
+    {
+      "name": "persona-minter-agent",
+      "ensName": "persona-minter.focusgroup.eth",
+      "protocol": "0G iNFT",
+      "skills": [
+        "mint-persona@0.1.0",
+        "zerog-recipes@0.1.0",
+        "ens-subname-issue@0.1.0"
+      ],
+      "episodicStreamId": "dry-d757e05e",
+      "skillManifestRootHash": null
+    },
+    {
+      "name": "swarm-session-agent",
+      "ensName": "swarm-session.focusgroup.eth",
+      "protocol": "Persistent Agent Kit",
+      "skills": [
+        "run-focus-session@0.1.0",
+        "spawn-axl-cohort@0.1.0",
+        "mint-persona@0.1.0"
+      ],
+      "episodicStreamId": "dry-37c95135",
+      "skillManifestRootHash": null
+    },
+    {
+      "name": "zerog-integration-agent",
+      "ensName": "zerog-integration.focusgroup.eth",
+      "protocol": "0G",
+      "skills": [
+        "zerog-recipes@0.1.0"
+      ],
+      "episodicStreamId": "dry-88b3d436",
+      "skillManifestRootHash": null
+    }
+  ]
+}

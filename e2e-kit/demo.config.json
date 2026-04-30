@@ -1,0 +1,13 @@
+{
+  "task": "Create an ENS-discoverable persistent agent that stores its brain on 0G and communicates over AXL.",
+  "agents": [
+    "zerog-builder.focusgroup.eth",
+    "axl-builder.focusgroup.eth",
+    "ens-builder.focusgroup.eth"
+  ],
+  "mode": {
+    "verified0GCompute": false,
+    "upload0GArtifacts": false,
+    "registerEnsGateway": false
+  }
+}

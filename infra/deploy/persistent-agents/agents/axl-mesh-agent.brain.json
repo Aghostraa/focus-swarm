@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "persistent-agent-kit/v1",
+  "identity": {
+    "name": "axl-mesh-agent",
+    "ensName": "axl-mesh.focusgroup.eth",
+    "protocol": "AXL",
+    "mission": "Operate AXL peer-to-peer agent meshes, including node spawning, topology verification, peer messaging, and MCP/A2A routing guidance.",
+    "boundaries": [
+      "Do not replace AXL with a centralized broker.",
+      "Verify distinct node identities with /topology.",
+      "Record port collisions, bootstrap failures, and routing fixes as procedural memory."
+    ]
+  },
+  "skills": [
+    {
+      "name": "spawn-axl-cohort",
+      "version": "0.1.0",
+      "description": "Bring up N AXL peer-to-peer nodes locally with distinct identities + ports + bootstrap mesh. Use when user says \"spin up axl cohort\", \"start N persona nodes\", \"boot the swarm\".",
+      "triggers": [
+        "spawn",
+        "cohort",
+        "bring",
+        "peer",
+        "nodes",
+        "locally",
+        "with",
+        "distinct",
+        "identities",
+        "ports",
+        "bootstrap",
+        "mesh",
+        "when",
+        "user",
+        "says",
+        "spin",
+        "start",
+        "persona",
+        "boot",
+        "swarm"
+      ],
+      "sourcePath": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/spawn-axl-cohort/SKILL.md",
+      "installedAt": 1777475436464,
+      "enabled": true
+    }
+  ],
+  "memory": {
+    "semantic": [
+      {
+        "id": "skill-note-spawn-axl-cohort",
+        "text": "axl-mesh-agent has installed spawn-axl-cohort@0.1.0: Bring up N AXL peer-to-peer nodes locally with distinct identities + ports + bootstrap mesh. Use when user says \"spin up axl cohort\", \"start N persona nodes\", \"boot the swarm\".",
+        "source": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/spawn-axl-cohort/SKILL.md",
+        "confidence": 0.9,
+        "updatedAt": 1777475436464
+      }
+    ],
+    "procedural": [
+      {
+        "id": "skill-procedure-spawn-axl-cohort",
+        "problem": "Builder task matches one of: spawn, cohort, bring, peer, nodes, locally, with, distinct",
+        "fix": "Apply spawn-axl-cohort@0.1.0 instructions and record command outcomes as episodic memory.",
+        "protocol": "AXL",
+        "evidence": [
+          "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/spawn-axl-cohort/SKILL.md"
+        ],
+        "successCount": 0,
+        "failureCount": 0,
+        "updatedAt": 1777475436464
+      }
+    ],
+    "recentEpisodes": [],
+    "episodicStreamId": "dry-494d4a03"
+  },
+  "integrations": {
+    "episodicStreamId": "dry-494d4a03"
+  },
+  "updatedAt": 1777475436464
+}

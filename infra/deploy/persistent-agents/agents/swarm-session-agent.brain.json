@@ -1,0 +1,177 @@
+{
+  "schemaVersion": "persistent-agent-kit/v1",
+  "identity": {
+    "name": "swarm-session-agent",
+    "ensName": "swarm-session.focusgroup.eth",
+    "protocol": "Persistent Agent Kit",
+    "mission": "Coordinate full persistent-agent sessions: create personas, boot AXL, inject product context, run moderated dialogue, synthesize reports, and update memory.",
+    "boundaries": [
+      "Keep agent communication over AXL.",
+      "Use verified 0G Compute for generation, replies, synthesis, and consolidation where full mode is enabled.",
+      "Prefer fast cached demo paths for live judging unless the full protocol flow is explicitly requested."
+    ]
+  },
+  "skills": [
+    {
+      "name": "run-focus-session",
+      "version": "0.1.0",
+      "description": "Orchestrate a full synthetic focus group session. Smith N personas, spawn AXL cohort, run moderator turns, write synthesizer report. Use when user says \"run focus session\", \"test product with synthetic users\", \"start a study\".",
+      "triggers": [
+        "focus",
+        "session",
+        "orchestrate",
+        "full",
+        "synthetic",
+        "group",
+        "smith",
+        "personas",
+        "spawn",
+        "cohort",
+        "moderator",
+        "turns",
+        "write",
+        "synthesizer",
+        "report",
+        "when",
+        "user",
+        "says",
+        "test",
+        "product",
+        "with",
+        "users",
+        "start",
+        "study"
+      ],
+      "sourcePath": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/run-focus-session/SKILL.md",
+      "installedAt": 1777475436464,
+      "enabled": true
+    },
+    {
+      "name": "spawn-axl-cohort",
+      "version": "0.1.0",
+      "description": "Bring up N AXL peer-to-peer nodes locally with distinct identities + ports + bootstrap mesh. Use when user says \"spin up axl cohort\", \"start N persona nodes\", \"boot the swarm\".",
+      "triggers": [
+        "spawn",
+        "cohort",
+        "bring",
+        "peer",
+        "nodes",
+        "locally",
+        "with",
+        "distinct",
+        "identities",
+        "ports",
+        "bootstrap",
+        "mesh",
+        "when",
+        "user",
+        "says",
+        "spin",
+        "start",
+        "persona",
+        "boot",
+        "swarm"
+      ],
+      "sourcePath": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/spawn-axl-cohort/SKILL.md",
+      "installedAt": 1777475436464,
+      "enabled": true
+    },
+    {
+      "name": "mint-persona",
+      "version": "0.1.0",
+      "description": "End-to-end mint a persona iNFT. Generate persona via 0G Compute → encrypt brain → upload to 0G Storage → mint ERC-7857 → register ENS subname. Use when user says \"mint persona\", \"create persona iNFT\", \"spawn an archetype\".",
+      "triggers": [
+        "mint",
+        "persona",
+        "inft",
+        "generate",
+        "compute",
+        "encrypt",
+        "brain",
+        "upload",
+        "storage",
+        "7857",
+        "register",
+        "subname",
+        "when",
+        "user",
+        "says",
+        "create",
+        "spawn",
+        "archetype"
+      ],
+      "sourcePath": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/mint-persona/SKILL.md",
+      "installedAt": 1777475436464,
+      "enabled": true
+    }
+  ],
+  "memory": {
+    "semantic": [
+      {
+        "id": "skill-note-run-focus-session",
+        "text": "swarm-session-agent has installed run-focus-session@0.1.0: Orchestrate a full synthetic focus group session. Smith N personas, spawn AXL cohort, run moderator turns, write synthesizer report. Use when user says \"run focus session\", \"test product with synthetic users\", \"start a study\".",
+        "source": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/run-focus-session/SKILL.md",
+        "confidence": 0.9,
+        "updatedAt": 1777475436464
+      },
+      {
+        "id": "skill-note-spawn-axl-cohort",
+        "text": "swarm-session-agent has installed spawn-axl-cohort@0.1.0: Bring up N AXL peer-to-peer nodes locally with distinct identities + ports + bootstrap mesh. Use when user says \"spin up axl cohort\", \"start N persona nodes\", \"boot the swarm\".",
+        "source": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/spawn-axl-cohort/SKILL.md",
+        "confidence": 0.9,
+        "updatedAt": 1777475436464
+      },
+      {
+        "id": "skill-note-mint-persona",
+        "text": "swarm-session-agent has installed mint-persona@0.1.0: End-to-end mint a persona iNFT. Generate persona via 0G Compute → encrypt brain → upload to 0G Storage → mint ERC-7857 → register ENS subname. Use when user says \"mint persona\", \"create persona iNFT\", \"spawn an archetype\".",
+        "source": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/mint-persona/SKILL.md",
+        "confidence": 0.9,
+        "updatedAt": 1777475436464
+      }
+    ],
+    "procedural": [
+      {
+        "id": "skill-procedure-run-focus-session",
+        "problem": "Builder task matches one of: focus, session, orchestrate, full, synthetic, group, smith, personas",
+        "fix": "Apply run-focus-session@0.1.0 instructions and record command outcomes as episodic memory.",
+        "protocol": "Persistent Agent Kit",
+        "evidence": [
+          "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/run-focus-session/SKILL.md"
+        ],
+        "successCount": 0,
+        "failureCount": 0,
+        "updatedAt": 1777475436464
+      },
+      {
+        "id": "skill-procedure-spawn-axl-cohort",
+        "problem": "Builder task matches one of: spawn, cohort, bring, peer, nodes, locally, with, distinct",
+        "fix": "Apply spawn-axl-cohort@0.1.0 instructions and record command outcomes as episodic memory.",
+        "protocol": "Persistent Agent Kit",
+        "evidence": [
+          "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/spawn-axl-cohort/SKILL.md"
+        ],
+        "successCount": 0,
+        "failureCount": 0,
+        "updatedAt": 1777475436464
+      },
+      {
+        "id": "skill-procedure-mint-persona",
+        "problem": "Builder task matches one of: mint, persona, inft, generate, compute, encrypt, brain, upload",
+        "fix": "Apply mint-persona@0.1.0 instructions and record command outcomes as episodic memory.",
+        "protocol": "Persistent Agent Kit",
+        "evidence": [
+          "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/mint-persona/SKILL.md"
+        ],
+        "successCount": 0,
+        "failureCount": 0,
+        "updatedAt": 1777475436464
+      }
+    ],
+    "recentEpisodes": [],
+    "episodicStreamId": "dry-37c95135"
+  },
+  "integrations": {
+    "episodicStreamId": "dry-37c95135"
+  },
+  "updatedAt": 1777475436464
+}

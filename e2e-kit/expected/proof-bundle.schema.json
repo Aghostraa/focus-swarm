@@ -1,0 +1,5 @@
+{
+  "schemaVersion": "persistent-agent-proof/v1",
+  "requiredAgentCount": 3,
+  "requiredFields": ["sessionId", "task", "agents", "generatedAt"]
+}
