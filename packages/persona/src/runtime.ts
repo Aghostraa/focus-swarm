@@ -166,6 +166,28 @@ async function main() {
 
   const spec = await loadSpec();
   const systemPrompt = buildSystemPrompt(spec);
+
+  // Register persona skills as MCP tools on the AXL router_port (AXL_MCP_URL env).
+  const axlMcpUrl = process.env.AXL_MCP_URL;
+  if (axlMcpUrl && spec.skills) {
+    const { registerSkillAsMcpTool } = await import('@cortex/kit');
+    for (const skill of Object.keys(spec.skills) as string[]) {
+      try {
+        await registerSkillAsMcpTool(axlMcpUrl, {
+          name: skill,
+          version: '1.0.0',
+          description: skill,
+          triggers: [],
+          installedAt: Date.now(),
+          enabled: true,
+        });
+      } catch (e) {
+        console.warn(`[persona ${TOKEN_ID}] MCP register ${skill} failed:`, (e as Error).message);
+      }
+    }
+    console.log(`[persona ${TOKEN_ID}] MCP tools registered on ${axlMcpUrl}`);
+  }
+
   const stateStream = streamIdFromLabel(`persona:${TOKEN_ID}:state`);
   const logStream = streamIdFromLabel(`persona:${TOKEN_ID}:log`);
 

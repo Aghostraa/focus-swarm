@@ -8,5 +8,7 @@ export * from './memory/store.js';
 export * from './memory/consolidate.js';
 export * from './identity/ens.js';
 export * from './transport/axl.js';
+export * from './transport/mcp.js';
 export * from './inference/zerog.js';
 export * from './proof/proof.js';
+export * from './Agent.js';
