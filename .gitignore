@@ -19,4 +19,10 @@ cache/
 typechain-types/
 coverage/
 0g-doc/
-packages/apply/
+
+# apply personal data
+packages/apply/applications/
+packages/apply/training-letters/
+packages/apply/profile-context.md
+packages/apply/ahoura-style-guide.md
+packages/apply/.env.example

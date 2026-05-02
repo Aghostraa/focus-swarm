@@ -1,0 +1,15 @@
+{
+  "name": "@cortex/protocol-twins",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/spawn.ts",
+    "dev": "tsx src/spawn.ts"
+  },
+  "dependencies": {
+    "@cortex/core": "workspace:*",
+    "@cortex/kit": "workspace:*",
+    "dotenv": "^16.4.0"
+  }
+}

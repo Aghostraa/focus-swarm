@@ -1,0 +1,19 @@
+{
+  "name": "@cortex/apply",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "src/cli.ts",
+  "scripts": {
+    "start": "tsx src/cli.ts",
+    "twin": "tsx src/runtime.ts",
+    "list": "tsx src/cli.ts list",
+    "tracker": "tsx src/cli.ts tracker",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@cortex/core": "workspace:*",
+    "@cortex/kit": "workspace:*",
+    "dotenv": "^16.4.0"
+  }
+}
