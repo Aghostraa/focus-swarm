@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/spawn.ts",
-    "dev": "tsx src/spawn.ts"
+    "dev": "tsx src/spawn.ts",
+    "mint": "tsx src/mint-twins.ts"
   },
   "dependencies": {
     "@cortex/core": "workspace:*",
