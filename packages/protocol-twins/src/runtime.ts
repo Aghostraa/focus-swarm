@@ -5,6 +5,7 @@
 
 import 'dotenv/config';
 import fs from 'node:fs';
+import { resolve } from 'node:path';
 import {
   AxlClient,
   pumpRecv,
@@ -17,16 +18,30 @@ import {
   verifiedReason,
   appendIntegrationEvent,
   registerSkillAsMcpTool,
+  loadSkillDirectory,
+  selectSkillsForTask,
+  buildSkillPrompt,
 } from '@cortex/kit';
 import type { TwinConfig } from './index.js';
 
 export async function runTwin(config: TwinConfig): Promise<void> {
   const axlApiUrl = config.axlApiUrl ?? process.env.AXL_API_URL ?? 'http://127.0.0.1:9002';
   const axlMcpUrl = config.axlMcpUrl ?? process.env.AXL_MCP_URL;
+  const skillDir = resolve(process.env.SKILL_DIR ?? '.claude/skills');
   const axl = new AxlClient(axlApiUrl);
 
   const myPeerId = await axl.myPubkey();
   console.log(`[twin:${config.name}] axl=${axlApiUrl} peer=${myPeerId.slice(0, 12)}...`);
+
+  // Load skill packs for implicit auto-selection
+  let agentSkills: any[] = [];
+  try {
+    const allSkills = await loadSkillDirectory(skillDir);
+    agentSkills = allSkills.filter(s => config.skills?.includes(s.name));
+    console.log(`[twin:${config.name}] loaded ${agentSkills.length} skills: ${agentSkills.map(s => s.name).join(', ')}`);
+  } catch (e) {
+    console.warn(`[twin:${config.name}] skill load failed:`, (e as Error).message);
+  }
 
   // Register skills as MCP tools if AXL MCP router is available.
   if (axlMcpUrl && config.skills?.length) {
@@ -67,6 +82,9 @@ export async function runTwin(config: TwinConfig): Promise<void> {
   process.on('SIGINT', () => ac.abort());
   process.on('SIGTERM', () => ac.abort());
 
+  let interactionCount = 0;
+  const EVOLUTION_INTERVAL = 10;
+
   const onMessage = async (msg: SwarmMsg, fromPeer: string) => {
     if (msg.type !== 'query') return;
 
@@ -74,8 +92,14 @@ export async function runTwin(config: TwinConfig): Promise<void> {
 
     let answer: string;
     let verified = false;
+    let selectedSkill = '';
 
     try {
+      // Auto-select skills based on the question
+      const selected = selectSkillsForTask(agentSkills, msg.question, 3);
+      selectedSkill = selected.length ? selected[0].skill.name : '';
+      const skillPrompt = buildSkillPrompt(selected, msg.question);
+
       const systemPrompt = [
         config.mission,
         config.boundaries?.length ? `\nBoundaries:\n${config.boundaries.map((b) => `- ${b}`).join('\n')}` : '',
@@ -87,7 +111,7 @@ export async function runTwin(config: TwinConfig): Promise<void> {
       if (msg.context) {
         messages.push({ role: 'user' as const, content: `Context: ${msg.context}` });
       }
-      messages.push({ role: 'user' as const, content: msg.question });
+      messages.push({ role: 'user' as const, content: skillPrompt });
 
       const result = await verifiedReason(messages);
       answer = result.text;
@@ -110,14 +134,124 @@ export async function runTwin(config: TwinConfig): Promise<void> {
     });
 
     // Persist to episodic log.
+    interactionCount++;
     appendIntegrationEvent(config.name, {
       task: 'query',
       outcome: verified ? 'success' : 'unverified',
       integration: config.protocol ?? 'unknown',
-      notes: `Q: ${msg.question.slice(0, 100)} | A: ${answer.slice(0, 200)}`,
+      notes: `Q: ${msg.question.slice(0, 100)} | A: ${answer.slice(0, 200)} | skill: ${selectedSkill}`,
     }).catch(() => {});
+
+    // Trigger evolution every N interactions
+    if (interactionCount % EVOLUTION_INTERVAL === 0) {
+      console.log(`[twin:${config.name}] evolution trigger (${interactionCount} interactions)`);
+      // Evolution logic will be added in HTTP server section
+    }
   };
 
-  console.log(`[twin:${config.name}] ready — listening on AXL`);
+  // Start HTTP /ask server (implicit message interface)
+  const http = await import('node:http');
+  const httpPort = Number(process.env.HTTP_PORT ?? (9013 + (config.slotIndex ?? 0) * 10));
+
+  const httpServer = http.createServer(async (req, res) => {
+    if (req.url === '/' && req.method === 'GET') {
+      res.writeHead(200);
+      res.end(JSON.stringify({
+        agent: config.name,
+        protocol: config.protocol,
+        ready: true,
+      }));
+      return;
+    }
+
+    if (req.url !== '/ask' || req.method !== 'POST') {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
+
+    // Read request body
+    let body = '';
+    await new Promise<void>((resolve, reject) => {
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => resolve());
+      req.on('error', reject);
+      setTimeout(() => reject(new Error('request timeout')), 5000);
+    });
+
+    let request: any;
+    try {
+      request = JSON.parse(body);
+    } catch {
+      res.writeHead(400);
+      res.end(JSON.stringify({ error: 'invalid json' }));
+      return;
+    }
+
+    const { message, context } = request;
+    if (!message) {
+      res.writeHead(400);
+      res.end(JSON.stringify({ error: 'missing message field' }));
+      return;
+    }
+
+    let answer = '';
+    let verified = false;
+    let selectedSkill = '';
+
+    try {
+      // Auto-select skills for the message
+      const selected = selectSkillsForTask(agentSkills, message, 3);
+      selectedSkill = selected.length ? selected[0].skill.name : '';
+      const skillPrompt = buildSkillPrompt(selected, message);
+
+      const systemPrompt = [
+        config.mission,
+        config.boundaries?.length ? `\nBoundaries:\n${config.boundaries.map((b) => `- ${b}`).join('\n')}` : '',
+      ].filter(Boolean).join('\n');
+
+      const messages = [
+        { role: 'system' as const, content: systemPrompt },
+      ];
+      if (context) {
+        messages.push({ role: 'user' as const, content: `Context: ${context}` });
+      }
+      messages.push({ role: 'user' as const, content: skillPrompt });
+
+      const result = await verifiedReason(messages);
+      answer = result.text;
+      verified = result.verified;
+    } catch (e) {
+      answer = `Error: ${(e as Error).message}`;
+    }
+
+    // Log interaction
+    interactionCount++;
+    appendIntegrationEvent(config.name, {
+      task: 'http_ask',
+      outcome: verified ? 'success' : 'unverified',
+      integration: 'http',
+      notes: `Q: ${message.slice(0, 100)} | skill: ${selectedSkill}`,
+    }).catch(() => {});
+
+    // Trigger evolution
+    if (interactionCount % EVOLUTION_INTERVAL === 0) {
+      console.log(`[twin:${config.name}] evolution trigger (${interactionCount} interactions)`);
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      answer,
+      verified,
+      skill: selectedSkill,
+      from: config.name,
+    }));
+  });
+
+  httpServer.listen(httpPort, () => {
+    console.log(`[twin:${config.name}] HTTP /ask server on :${httpPort}`);
+  });
+
+  console.log(`[twin:${config.name}] ready — listening on AXL + HTTP`);
   await pumpRecv(axl, onMessage, ac.signal);
 }

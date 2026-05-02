@@ -24,6 +24,7 @@ function loadTwinConfigs(): TwinConfig[] {
       const stride = Number(process.env.AXL_PORT_STRIDE ?? 10);
       return {
         ...raw,
+        slotIndex: i,
         axlApiUrl: raw.axlApiUrl ?? `http://127.0.0.1:${base + i * stride}`,
         axlMcpUrl: raw.axlMcpUrl ?? `http://127.0.0.1:${base + i * stride + 1}`,
       } as TwinConfig;

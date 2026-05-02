@@ -1,0 +1,299 @@
+──────────────────────────────────────────────────────────────────────
+ Ready to code?                                                                           
+                                                                                          
+ Here is Claude's plan:                                                                   
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Plan: Cortex — Decentralized Agent Framework (OpenClaw-Inspired, 0G-Native)              
+                                                                                          
+ Context                                                                                  
+                                     
+ The user wants to position cortex not as "3 specific agents" but as a framework for
+ building persistent, self-evolving agents — inspired by OpenClaw but fully decentralized
+  on 0G + AXL + ENS. Three protocol expert agents (zerog, axl, ens) serve as the
+ canonical example agents.
+
+ Key design decisions from user:
+ - Implicit message-passing over explicit tool call schemas (POST /ask {message} not MCP
+ JSON-RPC)
+ - Self-evolution is a primary goal — agents consolidate memory and re-upload brain after
+  interactions
+ - On-chain brain update — ENS agent.resume always points to latest rootHash after
+ agent.save()
+ - iNFT mint — full on-chain identity via ERC-7857 + ENS subname
+ - Both AXL + HTTP interfaces
+
+ What Already Works (don't rebuild)
+
+ The hard infrastructure is done:
+ - packages/kit/src/Agent.ts — Agent.create() uploads brain to 0G + registers ENS;
+ agent.save() re-uploads + updates ENS; agent.listen() / agent.send() for AXL;
+ agent.ask() for verifiedReason
+ - packages/kit/src/skills/selector.ts — selectSkillsForTask(skills, message)
+ auto-selects skills from natural language
+ - packages/kit/src/memory/consolidate.ts — consolidateMemory(brain, events) via 0G
+ Compute
+ - packages/protocol-twins/src/runtime.ts — AXL pump loop, query/answer SwarmMsg handling
+ - packages/protocol-twins/src/spawn.ts — multi-twin spawner reading JSON configs
+ - infra/axl/spawn.sh — boots N AXL nodes
+ - .claude/skills/*/SKILL.md — 5 skill packs (stubs, need content)
+ - Apply-twin as complete reference implementation
+
+ What to Build
+
+ 1. Enrich Skill Packs ("Protocol Bodies")
+
+ Content that makes agents genuinely knowledgeable. Each skill pack gets real
+ documentation, code patterns, and gotchas from the implementation.
+
+ Modify .claude/skills/zerog-recipes/SKILL.md:
+ - Full 0G TS SDK examples (upload, download, kvSet, kvGet, logAppend)
+ - KV stream ID format: 64 hex chars (padStart), no 0x prefix for zgs_kv config
+ - .env.local override pattern (ZG_KV_NODE_URL=http://127.0.0.1:6789)
+ - Batcher(3, ...) for 3-replica replication
+ - Local zgs_kv setup (cmake policy workaround, protoc requirement)
+ - Testnet: Galileo chainId 16602, indexer-storage-testnet-turbo
+ - TeeML verification: broker.inference.processResponse() must return true
+
+ Modify .claude/skills/spawn-axl-cohort/SKILL.md:
+ - Full SwarmMsg union types (turn/utterance/observation/session-end/query/answer)
+ - AXL port schema: api=9002+i10, router=9003+i10, a2a=9004+i10, tls=9101+i10
+ - Practical spawn sequence with boot order
+ - A2A query/answer pattern with requestId correlation
+ - MCP-over-AXL: registerSkillAsMcpTool, callRemoteMcpTool
+ - pumpRecv usage with AbortController
+
+ Modify .claude/skills/ens-subname-issue/SKILL.md:
+ - Full CCIP-read flow (EIP-3668): OffchainLookup → gateway → resolveWithProof
+ - ENS text record schema for agents (agent.inft, agent.axl_peer, agent.resume,
+ agent.protocol, agent.memory.episodic)
+ - Gateway POST /set payload format
+ - CCIP signature format: keccak256(0x1900 || target || expires || keccak256(req) ||
+ keccak256(result))
+ - viem resolution with CCIP-read support
+ - registerAgentEns() / agentEnsTextRecords() usage
+
+ Create new .claude/skills/apply-twin-patterns/SKILL.md:
+ - Apply-twin architecture: HTTP MCP server + AXL listener
+ - KV state management: setAgentState/getAgentState with stream ID from keccak256
+ - Profile init pattern: init-profile.ts + profile-context.md
+ - TeeML tools: verifiedReason in every tool call
+ - Implicit skill auto-selection using selectSkillsForTask before verifiedReason
+ - appendIntegrationEvent for episodic memory after every interaction
+ - Self-evolution trigger: after N events, consolidateMemory + agent.save()
+ - The POST /ask interface pattern (vs explicit tool schemas)
+
+ 2. Upgrade Protocol Twin Runtime to Implicit Message-Passing
+
+ Modify packages/protocol-twins/src/runtime.ts:
+
+ Current: verifiedReason called with raw mission as system prompt.
+ New: auto-select skills from message + build enriched system prompt.
+
+ import { loadSkillDirectory, selectSkillsForTask, buildSkillPrompt } from '@cortex/kit';
+
+ // On startup: load all skill packs from .claude/skills/
+ const skillDir = resolve(process.env.SKILL_DIR ?? '.claude/skills');
+ const allSkills = await loadSkillDirectory(skillDir);
+ const agentSkills = allSkills.filter(s => config.skills?.includes(s.name));
+
+ // In onMessage handler:
+ const selected = selectSkillsForTask(agentSkills, msg.question);
+ const enrichedPrompt = buildSkillPrompt(selected, msg.question);
+ const messages = [
+   { role: 'system', content: config.mission },
+   ...(msg.context ? [{ role: 'user', content: `Context: ${msg.context}` }] : []),
+   { role: 'user', content: enrichedPrompt },
+ ];
+ const result = await verifiedReason(messages);
+
+ Also add HTTP ask server (port: HTTP_PORT env or 9013+slotIndex*10):
+
+ POST /ask
+ { "message": "How do I store encrypted data?", "context": "..." }
+ → { "answer": "...", "verified": true, "skill": "zerog-recipes", "from":
+ "zerog.cortex.eth" }
+
+ No JSON-RPC schema. Natural language in → verified answer out.
+
+ Also add self-evolution trigger: after every 10 interactions, call consolidateMemory +
+ agent.save(). This re-uploads brain to 0G and updates ENS agent.resume. Brain update is
+ NOT on-chain (write-once NFT) but ENS always tracks latest rootHash.
+
+ let interactionCount = 0;
+ // after each answer:
+ interactionCount++;
+ if (interactionCount % 10 === 0) {
+   consolidateMemory(brain, recentEvents).then(updatedBrain => {
+     // re-upload + update ENS (agent.save() pattern)
+     uploadPlain(Buffer.from(JSON.stringify(updatedBrain))).then(({ rootHash }) => {
+       registerAgentEns({ ensName: config.ensName, texts: agentEnsTextRecords({
+ brainRootHash: rootHash }) });
+     });
+   }).catch(() => {});
+ }
+
+ 3. iNFT Minting Script for Protocol Twins
+
+ Create packages/protocol-twins/src/mint-twins.ts:
+
+ For each twin config:
+ 1. Load skill packs for the agent
+ 2. Call uploadPlain(brainBytes) (public agents) → rootHash
+ 3. Mint iNFT via MintPersona.mint(owner, rootHash, metadataHash) on Galileo
+ 4. Register ENS: zerog.cortex.eth, axl.cortex.eth, ens.cortex.eth
+ 5. Write packages/protocol-twins/protocol-twins-manifest.json
+
+ Uses the deployed contract at 0x1f45C631456f55dA565fCb5e8e063a0dD4B6380B.
+
+ Update packages/protocol-twins/package.json:
+ "scripts": {
+   "start": "tsx src/spawn.ts",
+   "mint": "tsx src/mint-twins.ts",
+   "dev": "tsx src/spawn.ts"
+ }
+
+ 4. Update Twin Agent Configs
+
+ Modify all 3 *.twin.json files:
+ - Richer mission describing expert domain + how they help projects integrate
+ - Reference correct skills arrays
+ - Add axlApiUrl port hints matching spawn.ts assignment
+
+ ENS names: keep existing (zerog-builder.cortex.eth, axl-builder.cortex.eth,
+ ens-builder.cortex.eth)
+
+ 5. Demo Script: Framework in Action
+
+ Create demo/03-protocol-agents.ts:
+
+ 1. Print: "Loading protocol agents via ENS..."
+    → resolveAgentEns('zerog-builder.cortex.eth') → gets axl_peer + resume
+    → resolveAgentEns('axl-builder.cortex.eth') → same
+    → resolveAgentEns('ens-builder.cortex.eth') → same
+
+ 2. Print: "HTTP ask — zerog agent:"
+    → POST http://localhost:9013/ask { message: "How do I set up local 0G KV with
+ zgs_kv?" }
+    → Print verified answer + skill used
+
+ 3. Print: "AXL query — ens agent:"
+    → SwarmMsg query from axl-builder to ens-builder
+    → Print verified answer
+
+ 4. Print: "Cross-agent relay — zerog asks ens about agent text records:"
+    → zerog-builder AXL-queries ens-builder
+    → Print reply showing agent collaboration
+
+ 5. Print: "Brain evolution triggered (10th interaction):"
+    → Show consolidation log + new rootHash + ENS update
+
+ 6. Print: "iNFT verification:"
+    → Query Galileo: MintPersona.ownerOf(tokenId) + encryptedURI(tokenId)
+    → Confirm on-chain identity
+
+ File Summary
+
+ Modify
+
+ ┌─────────────────────────────────────────────────────────────┬──────────────────────┐
+ │                            File                             │        Change        │
+ ├─────────────────────────────────────────────────────────────┼──────────────────────┤
+ │ .claude/skills/zerog-recipes/SKILL.md                       │ Full 0G SDK content  │
+ │                                                             │ + gotchas            │
+ ├─────────────────────────────────────────────────────────────┼──────────────────────┤
+ │ .claude/skills/spawn-axl-cohort/SKILL.md                    │ SwarmMsg types, A2A  │
+ │                                                             │ patterns             │
+ ├─────────────────────────────────────────────────────────────┼──────────────────────┤
+ │ .claude/skills/ens-subname-issue/SKILL.md                   │ CCIP flow, text      │
+ │                                                             │ records              │
+ ├─────────────────────────────────────────────────────────────┼──────────────────────┤
+ │                                                             │ Skill auto-select +  │
+ │ packages/protocol-twins/src/runtime.ts                      │ HTTP /ask +          │
+ │                                                             │ evolution trigger    │
+ ├─────────────────────────────────────────────────────────────┼──────────────────────┤
+ │ packages/kit/examples/protocol-twins/agents/zerog.twin.json │ Richer mission       │
+ ├─────────────────────────────────────────────────────────────┼──────────────────────┤
+ │ packages/kit/examples/protocol-twins/agents/axl.twin.json   │ Richer mission       │
+ ├─────────────────────────────────────────────────────────────┼──────────────────────┤
+ │ packages/kit/examples/protocol-twins/agents/ens.twin.json   │ Richer mission       │
+ ├─────────────────────────────────────────────────────────────┼──────────────────────┤
+ │ packages/protocol-twins/package.json                        │ Add mint script      │
+ └─────────────────────────────────────────────────────────────┴──────────────────────┘
+
+ Create
+
+ ┌─────────────────────────────────────────────┬─────────────────────────────────┐
+ │                    File                     │             Purpose             │
+ ├─────────────────────────────────────────────┼─────────────────────────────────┤
+ │ .claude/skills/apply-twin-patterns/SKILL.md │ Apply-twin learnings skill pack │
+ ├─────────────────────────────────────────────┼─────────────────────────────────┤
+ │ packages/protocol-twins/src/mint-twins.ts   │ iNFT mint + ENS for all 3 twins │
+ ├─────────────────────────────────────────────┼─────────────────────────────────┤
+ │ demo/03-protocol-agents.ts                  │ Full framework demo             │
+ └─────────────────────────────────────────────┴─────────────────────────────────┘
+
+ Implementation Order
+
+ 1. Skill packs (highest leverage — affects agent quality for all interactions)
+ 2. apply-twin-patterns skill
+ 3. Update twin configs
+ 4. Modify runtime.ts (skill auto-select + /ask endpoint + evolution)
+ 5. mint-twins.ts
+ 6. demo/03-protocol-agents.ts
+
+ Verification
+
+ # Start AXL + spawn twins
+ bash infra/axl/spawn.sh 3
+ pnpm -F @cortex/protocol-twins start
+
+ # Test HTTP implicit ask
+ curl -s http://localhost:9013/ask -X POST -H "Content-Type: application/json" \
+   -d '{"message":"How do I set up 0G KV locally?"}' | jq .
+
+ # Test AXL query/answer
+ pnpm tsx demo/02-twins-chat.ts  # existing test
+
+ # Full demo
+ pnpm tsx demo/03-protocol-agents.ts
+
+ # Mint iNFTs
+ pnpm -F @cortex/protocol-twins mint
+
+ # ENS check
+ curl http://localhost:8787/lookup/zerog-builder.cortex.eth
+
+ Framework Positioning (for README/demo)
+
+ Cortex = OpenClaw-inspired, fully decentralized:
+ - Brain: encrypted/plaintext on 0G Storage, content-addressed
+ - Identity: ENS subname with agent.resume → latest brain rootHash
+     pnpm -F @cortex/protocol-twins start
+                                                         
+     # Test HTTP implicit ask                                                
+     curl -s http://localhost:9013/ask -X POST -H "Content-Type: application/json" \  
+       -d '{"message":"How do I set up 0G KV locally?"}' | jq .      
+                                                                   
+     # Test AXL query/answer                                                              
+     pnpm tsx demo/02-twins-chat.ts  # existing test
+                                                                                 
+     # Full demo
+     pnpm tsx demo/03-protocol-agents.ts
+                                 
+     # Mint iNFTs                                        
+     pnpm -F @cortex/protocol-twins mint
+                                             
+     # ENS check
+     curl http://localhost:8787/lookup/zerog-builder.cortex.eth     
+
+     Framework Positioning (for README/demo)
+
+     Cortex = OpenClaw-inspired, fully decentralized:
+     - Brain: encrypted/plaintext on 0G Storage, content-addressed
+     - Identity: ENS subname with agent.resume → latest brain rootHash
+     - Ownership: ERC-7857 iNFT on Galileo
+     - Messaging: AXL P2P (Yggdrasil mesh, no central broker)
+     - Inference: 0G Compute (Qwen 2.5) with TeeML seal — every response provable
+     - Evolution: episodic log → consolidateMemory → re-upload → ENS update, automatically
+     - Discovery: GET /personas on ENS gateway, filter by protocol/market
+     - Integration: POST /ask on any agent — no schema, no SDK required
