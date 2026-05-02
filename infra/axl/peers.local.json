@@ -2,8 +2,5 @@
   {"tokenId":"moderator","role":"moderator","peerId":"5a74df694b898c47590b8f60217634efa3c9fe0b2a7d619f450d1aa752dd748a","apiPort":9002},
   {"tokenId":"persona-0","role":"persona","peerId":"dd796e3f06d81ced2186ffb11088162961e276d69f9f32f5871248f76b3ea48c","apiPort":9012},
   {"tokenId":"persona-1","role":"persona","peerId":"aecf5de578f6ddd4528aa2a69ba7c85b33f1f355737a23e11d1cce5bc1f1057d","apiPort":9022},
-  {"tokenId":"persona-2","role":"persona","peerId":"2717be3bfceeda10681e78ffab52d63cfcec0e32944d50bdbd9d21e92bd7c254","apiPort":9032},
-  {"tokenId":"persona-3","role":"persona","peerId":"10a0c43061f6c2e22dff09ca31f1ae3bc6f7b71d4e8f7b4e7022da309e95ab9b","apiPort":9042},
-  {"tokenId":"persona-4","role":"persona","peerId":"e383017f2283397847f2666c731d4d739af15a4187f67d60566570bd5dc1ac4e","apiPort":9052},
-  {"tokenId":"persona-5","role":"persona","peerId":"57d4b3fd74996e675e188786a1cc6c09e28133f35c6927daef676256394b7d0f","apiPort":9062}
+  {"tokenId":"persona-2","role":"persona","peerId":"2717be3bfceeda10681e78ffab52d63cfcec0e32944d50bdbd9d21e92bd7c254","apiPort":9032}
 ]

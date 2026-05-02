@@ -12,13 +12,15 @@ import { AxlClient, pumpRecv, type SwarmMsg } from '@cortex/core';
 import { registerAgentEns, agentEnsTextRecords, resolveAgentEns, verifiedReason } from '@cortex/kit';
 import fetch from 'node-fetch';
 
-const AXL_ZEROG = 'http://127.0.0.1:9013'; // zerog api
-const AXL_AXL = 'http://127.0.0.1:9023';     // axl api
-const AXL_ENS = 'http://127.0.0.1:9033';     // ens api
+// AXL API ports (from spawn.ts: 9002 + slotIndex * 10)
+const AXL_AXL_API = 'http://127.0.0.1:9002';     // axl-builder: slotIndex=0
+const AXL_ENS_API = 'http://127.0.0.1:9012';     // ens-builder: slotIndex=1
+const AXL_ZEROG_API = 'http://127.0.0.1:9022';   // zerog-builder: slotIndex=2
 
-const HTTP_ZEROG = 'http://127.0.0.1:9013/ask';
-const HTTP_AXL = 'http://127.0.0.1:9023/ask';
-const HTTP_ENS = 'http://127.0.0.1:9033/ask';
+// HTTP /ask endpoints (from twin configs)
+const HTTP_ZEROG = 'http://127.0.0.1:9013/ask';  // zerog on 9013
+const HTTP_AXL = 'http://127.0.0.1:9023/ask';    // axl on 9023
+const HTTP_ENS = 'http://127.0.0.1:9033/ask';    // ens on 9033
 
 async function section(title: string) {
   console.log(`\n${'='.repeat(70)}`);
@@ -114,8 +116,8 @@ async function main() {
   await section('PHASE 3: AXL P2P — zerog queries ens about CCIP-read');
 
   const requestId = `demo-${Date.now()}`;
-  const zerogAxl = new AxlClient(AXL_ZEROG);
-  const ensAxl = new AxlClient(AXL_ENS);
+  const zerogAxl = new AxlClient(AXL_ZEROG_API);
+  const ensAxl = new AxlClient(AXL_ENS_API);
 
   const [zerogyPeer, ensPeer] = await Promise.all([
     zerogAxl.myPubkey(),

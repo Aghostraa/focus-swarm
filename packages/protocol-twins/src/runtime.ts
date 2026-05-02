@@ -5,7 +5,8 @@
 
 import 'dotenv/config';
 import fs from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'url';
 import {
   AxlClient,
   pumpRecv,
@@ -24,14 +25,20 @@ import {
 } from '@cortex/kit';
 import type { TwinConfig } from './index.js';
 
-export async function runTwin(config: TwinConfig): Promise<void> {
-  const axlApiUrl = config.axlApiUrl ?? process.env.AXL_API_URL ?? 'http://127.0.0.1:9002';
-  const axlMcpUrl = config.axlMcpUrl ?? process.env.AXL_MCP_URL;
-  const skillDir = resolve(process.env.SKILL_DIR ?? '.claude/skills');
-  const axl = new AxlClient(axlApiUrl);
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-  const myPeerId = await axl.myPubkey();
-  console.log(`[twin:${config.name}] axl=${axlApiUrl} peer=${myPeerId.slice(0, 12)}...`);
+export async function runTwin(config: TwinConfig): Promise<void> {
+  try {
+    console.log(`[twin:${config.name}] runTwin starting...`);
+    const axlApiUrl = config.axlApiUrl ?? process.env.AXL_API_URL ?? 'http://127.0.0.1:9002';
+    const axlMcpUrl = config.axlMcpUrl ?? process.env.AXL_MCP_URL;
+    const skillDir = process.env.SKILL_DIR ? resolve(process.env.SKILL_DIR) : resolve(__dirname, '../../../.claude/skills');
+    console.log(`[twin:${config.name}] axl=${axlApiUrl}, skillDir=${skillDir}`);
+    const axl = new AxlClient(axlApiUrl);
+
+    console.log(`[twin:${config.name}] getting peer ID...`);
+    const myPeerId = await axl.myPubkey();
+    console.log(`[twin:${config.name}] axl=${axlApiUrl} peer=${myPeerId.slice(0, 12)}...`);
 
   // Load skill packs for implicit auto-selection
   let agentSkills: any[] = [];
@@ -63,8 +70,9 @@ export async function runTwin(config: TwinConfig): Promise<void> {
   }
 
   // Register/update ENS text records with current peer ID.
-  if (config.ensName) {
+  if (config.ensName && process.env.ENS_GATEWAY_URL) {
     try {
+      console.log(`[twin:${config.name}] ENS register attempt...`);
       await registerAgentEns({
         ensName: config.ensName,
         texts: agentEnsTextRecords({
@@ -74,8 +82,10 @@ export async function runTwin(config: TwinConfig): Promise<void> {
       });
       console.log(`[twin:${config.name}] ENS registered: ${config.ensName}`);
     } catch (e) {
-      console.warn(`[twin:${config.name}] ENS register failed:`, (e as Error).message);
+      console.warn(`[twin:${config.name}] ENS register failed (non-fatal):`, (e as Error).message);
     }
+  } else if (config.ensName) {
+    console.log(`[twin:${config.name}] ENS_GATEWAY_URL not set, skipping ENS registration`);
   }
 
   const ac = new AbortController();
@@ -151,7 +161,8 @@ export async function runTwin(config: TwinConfig): Promise<void> {
 
   // Start HTTP /ask server (implicit message interface)
   const http = await import('node:http');
-  const httpPort = Number(process.env.HTTP_PORT ?? (9013 + (config.slotIndex ?? 0) * 10));
+  const httpPort = Number(process.env.HTTP_PORT ?? config.httpPort ?? 9013);
+  console.log(`[twin:${config.name}] HTTP port: env=${process.env.HTTP_PORT}, config.httpPort=${config.httpPort}, final=${httpPort}`);
 
   const httpServer = http.createServer(async (req, res) => {
     if (req.url === '/' && req.method === 'GET') {
@@ -248,10 +259,18 @@ export async function runTwin(config: TwinConfig): Promise<void> {
     }));
   });
 
+  httpServer.on('error', (err) => {
+    console.error(`[twin:${config.name}] HTTP server error on port ${httpPort}:`, err.message);
+  });
+
   httpServer.listen(httpPort, () => {
     console.log(`[twin:${config.name}] HTTP /ask server on :${httpPort}`);
   });
 
-  console.log(`[twin:${config.name}] ready — listening on AXL + HTTP`);
-  await pumpRecv(axl, onMessage, ac.signal);
+    console.log(`[twin:${config.name}] ready — listening on AXL + HTTP`);
+    await pumpRecv(axl, onMessage, ac.signal);
+  } catch (e) {
+    console.error(`[twin:${config.name}] FATAL ERROR:`, (e as Error).message);
+    throw e;
+  }
 }

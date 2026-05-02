@@ -22,12 +22,15 @@ function loadTwinConfigs(): TwinConfig[] {
       const raw = JSON.parse(fs.readFileSync(path.join(agentsDir, f), 'utf8'));
       const base = Number(process.env.AXL_BASE_PORT ?? 9002);
       const stride = Number(process.env.AXL_PORT_STRIDE ?? 10);
-      return {
+      const mcp_base = 9003;
+      const config: TwinConfig = {
         ...raw,
         slotIndex: i,
         axlApiUrl: raw.axlApiUrl ?? `http://127.0.0.1:${base + i * stride}`,
-        axlMcpUrl: raw.axlMcpUrl ?? `http://127.0.0.1:${base + i * stride + 1}`,
-      } as TwinConfig;
+        axlMcpUrl: raw.axlMcpUrl ?? `http://127.0.0.1:${mcp_base + i * stride}`,
+      };
+      console.log(`[spawn] loaded ${raw.name}: slotIndex=${i}, axlApi=${base + i * stride}, axlMcp=${mcp_base + i * stride}, httpPort=${raw.httpPort ?? 'from-config'}`);
+      return config;
     });
 }
 
@@ -38,6 +41,7 @@ if (configs.length === 0) {
 }
 
 console.log(`[spawn] starting ${configs.length} protocol twins`);
-await Promise.all(configs.map((c) => runTwin(c).catch((e) => {
-  console.error(`[spawn] twin ${c.name} crashed:`, e);
+await Promise.allSettled(configs.map((c) => runTwin(c).catch((e) => {
+  console.error(`[spawn] twin ${c.name} failed:`, e.message || e);
+  throw e;
 })));

@@ -7,7 +7,8 @@ export interface TwinConfig {
   skills?: string[];
   axlApiUrl?: string;
   axlMcpUrl?: string;
-  slotIndex?: number; // for HTTP port: 9013 + slotIndex*10
+  httpPort?: number; // HTTP /ask server port (e.g., 9013, 9023, 9033)
+  slotIndex?: number; // for AXL slot assignment
 }
 
 export { runTwin } from './runtime.js';
