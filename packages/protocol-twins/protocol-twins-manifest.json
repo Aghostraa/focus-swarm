@@ -1,0 +1,34 @@
+{
+  "network": "galileo",
+  "chainId": 16602,
+  "twins": [
+    {
+      "name": "axl-builder",
+      "ensName": "axl-builder.cortex.eth",
+      "protocol": "AXL",
+      "brainRootHash": "0xf05156c7a5acbd5f7892014d5b61c8b8840021ef4d77caeb701286d4080dafa0",
+      "tokenId": 7,
+      "txHash": "0xb69f95eee3e76e0163bc5a0f640f9b7d0a783cc7731edfc25fc22215919d5849",
+      "mintedAt": 1777759972169
+    },
+    {
+      "name": "ens-builder",
+      "ensName": "ens-builder.cortex.eth",
+      "protocol": "ENS",
+      "brainRootHash": "0xdefbcacba700eb7c9d175db795b45671b97e9557f61285aba467cbddc2cb81f2",
+      "tokenId": 8,
+      "txHash": "0x6ff9ca96ecdb763166b43020960d0e731dad084bc771ba33bbfae4598eb686d4",
+      "mintedAt": 1777759997356
+    },
+    {
+      "name": "zerog-builder",
+      "ensName": "zerog-builder.cortex.eth",
+      "protocol": "0G",
+      "brainRootHash": "0xd848987575b432d37bcdacc7daee75087946a0309ca250013d950d361899ae15",
+      "tokenId": 9,
+      "txHash": "0x06482bfd93b50bd7ec5e2b1cb95c0de759ea4d68c9dac6c8fee0497eea7fde1b",
+      "mintedAt": 1777760026256
+    }
+  ],
+  "mintedAt": 1777759941424
+}

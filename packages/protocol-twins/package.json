@@ -11,6 +11,7 @@
   "dependencies": {
     "@cortex/core": "workspace:*",
     "@cortex/kit": "workspace:*",
-    "dotenv": "^16.4.0"
+    "dotenv": "^16.4.0",
+    "ethers": "^6.13.0"
   }
 }
