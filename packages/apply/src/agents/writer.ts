@@ -1,74 +1,50 @@
 import type { AnalysisResult, JobInput, LetterDraft, ProfileContext, ResearchResult } from "../types.js";
 import { summarizeProfile } from "../profile.js";
-
-type AnthropicResponse = {
-  content?: Array<{ type: string; text?: string }>;
-};
+import { verifiedReason } from "@cortex/kit";
 
 export async function writeDraft(
   job: JobInput,
   context: ProfileContext,
   analysis: AnalysisResult,
   research: ResearchResult,
-  model = "claude-3-5-sonnet-latest",
-  useAnthropic = true
+  candidateName: string = "[Your Name]"
 ): Promise<LetterDraft> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (key && useAnthropic) {
-    const generated = await writeWithAnthropic(key, model, job, context, analysis, research);
-    if (generated) return generated;
-  }
-
-  return writeFallbackDraft(job, analysis, research);
-}
-
-async function writeWithAnthropic(
-  key: string,
-  model: string,
-  job: JobInput,
-  context: ProfileContext,
-  analysis: AnalysisResult,
-  research: ResearchResult
-): Promise<LetterDraft | null> {
-  const prompt = [
-    "Write a tailored cover letter and short email draft for this application.",
-    "Return strict JSON with keys: subject, coverLetter, email.",
-    "Do not invent credentials. Use a direct, specific, unpolished-but-professional voice.",
-    "",
-    summarizeProfile(context),
-    "",
-    `Job: ${job.company} - ${job.role}`,
-    job.description,
-    "",
-    `Analysis: ${JSON.stringify(analysis)}`,
-    `Research: ${JSON.stringify(research)}`
-  ].join("\n");
-
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": key,
-      "anthropic-version": "2023-06-01"
+  // All inference via 0G Compute (TeeML), no Anthropic/Claude fallback
+  const result = await verifiedReason([
+    {
+      role: "system",
+      content: "You are a job search writer. Write tailored cover letters and emails using the candidate's profile, voice, and the job details. Return valid JSON with keys: subject, coverLetter, email. Do not invent credentials."
     },
-    body: JSON.stringify({
-      model,
-      max_tokens: 1800,
-      temperature: 0.5,
-      messages: [{ role: "user", content: prompt }]
-    })
-  });
+    {
+      role: "user",
+      content: [
+        "Write a tailored cover letter and email for this application.",
+        "",
+        "Candidate Profile:",
+        summarizeProfile(context),
+        "",
+        `Job: ${job.company} - ${job.role}`,
+        `Description: ${job.description}`,
+        "",
+        `Role Analysis: ${JSON.stringify(analysis)}`,
+        `Company Research: ${JSON.stringify(research)}`,
+        "",
+        "Return JSON with: {subject, coverLetter, email}"
+      ].join("\n")
+    }
+  ]);
 
-  if (!res.ok) return null;
-  const json = (await res.json()) as AnthropicResponse;
-  const text = json.content?.find(part => part.type === "text")?.text;
-  if (!text) return null;
-
-  const cleaned = text.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
-  return JSON.parse(cleaned) as LetterDraft;
+  try {
+    const cleaned = result.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
+    const parsed = JSON.parse(cleaned) as LetterDraft;
+    return parsed;
+  } catch {
+    // Fallback if inference fails
+    return writeFallbackDraft(job, analysis, research, candidateName);
+  }
 }
 
-function writeFallbackDraft(job: JobInput, analysis: AnalysisResult, research: ResearchResult): LetterDraft {
+function writeFallbackDraft(job: JobInput, analysis: AnalysisResult, research: ResearchResult, candidateName: string = "[Your Name]"): LetterDraft {
   const proof = analysis.proofPoints[0] ?? "my mix of product judgment, automation, and founder-style execution";
   const signal = research.signals[0] ?? "the practical shape of the work";
   const gap = analysis.gaps[0];
@@ -87,7 +63,7 @@ function writeFallbackDraft(job: JobInput, analysis: AnalysisResult, research: R
     `I would be glad to talk about where ${job.company} most needs leverage in this role and whether my background fits that need.`,
     "",
     "Best,",
-    "Ahoura"
+    candidateName
   ].join("\n");
 
   const email = [
@@ -98,7 +74,7 @@ function writeFallbackDraft(job: JobInput, analysis: AnalysisResult, research: R
     `The role caught my attention because ${analysis.angle.toLowerCase()} I have attached a tailored letter with the concrete reasons I think there may be a fit.`,
     "",
     "Best,",
-    "Ahoura"
+    candidateName
   ].join("\n");
 
   return {

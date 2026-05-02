@@ -147,7 +147,10 @@ export async function logRead(streamId: StreamId, fromSeq = 0): Promise<unknown[
 
 /** Derive a deterministic 32-byte streamId from a label. */
 export function streamIdFromLabel(label: string): StreamId {
-  return ethers.keccak256(ethers.toUtf8Bytes(label));
+  const hash = ethers.keccak256(ethers.toUtf8Bytes(label));
+  // Ensure 64 hex chars (32 bytes) with 0x prefix
+  const hex = hash.slice(2).padStart(64, '0');
+  return '0x' + hex;
 }
 
 export const _meta = { RPC_URL, INDEXER_URL, KV_NODE_URL };

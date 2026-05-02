@@ -16,8 +16,8 @@ import {
   concat,
   toHex,
   parseAbi,
-  privateKeyToAccount,
 } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -140,6 +140,7 @@ app.get('/ccip/:sender/:data', async (req, res) => {
         '0x1900',
         verifierAddr,
         toHex(expires, { size: 8 }),
+        keccak256(calldata),
         keccak256(result),
       ]),
     );

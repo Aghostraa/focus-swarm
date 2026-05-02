@@ -1,0 +1,25 @@
+# Domain terms
+Qwen
+ZEROG
+ZERO_G
+0G
+iNFT
+TeeML
+AES
+AXL
+ENS
+MCP
+
+# Hardhat/Web3
+hardhat
+ethers
+viem
+typechain
+
+# 0G specific
+verifiedReason
+pumpRecv
+SwarmMsg
+OffchainResolver
+CCIP
+ENSIP

@@ -18,6 +18,18 @@ importers:
         specifier: ^5.6.0
         version: 5.9.3
 
+  packages/apply:
+    dependencies:
+      '@cortex/core':
+        specifier: workspace:*
+        version: link:../core
+      '@cortex/kit':
+        specifier: workspace:*
+        version: link:../kit
+      dotenv:
+        specifier: ^16.4.0
+        version: 16.6.1
+
   packages/contracts:
     devDependencies:
       '@nomicfoundation/hardhat-toolbox':
@@ -69,7 +81,7 @@ importers:
 
   packages/harness:
     dependencies:
-      '@focus-swarm/core':
+      '@cortex/core':
         specifier: workspace:*
         version: link:../core
       dotenv:
@@ -78,7 +90,7 @@ importers:
 
   packages/kit:
     dependencies:
-      '@focus-swarm/core':
+      '@cortex/core':
         specifier: workspace:*
         version: link:../core
       dotenv:
@@ -87,7 +99,7 @@ importers:
 
   packages/moderator:
     dependencies:
-      '@focus-swarm/core':
+      '@cortex/core':
         specifier: workspace:*
         version: link:../core
       dotenv:
@@ -96,13 +108,13 @@ importers:
 
   packages/orchestrator:
     dependencies:
-      '@focus-swarm/core':
+      '@cortex/core':
         specifier: workspace:*
         version: link:../core
-      '@focus-swarm/smith':
+      '@cortex/smith':
         specifier: workspace:*
         version: link:../smith
-      '@focus-swarm/synthesizer':
+      '@cortex/synthesizer':
         specifier: workspace:*
         version: link:../synthesizer
       dotenv:
@@ -111,16 +123,28 @@ importers:
 
   packages/persona:
     dependencies:
-      '@focus-swarm/core':
+      '@cortex/core':
         specifier: workspace:*
         version: link:../core
       dotenv:
         specifier: ^16.4.0
         version: 16.6.1
 
+  packages/protocol-twins:
+    dependencies:
+      '@cortex/core':
+        specifier: workspace:*
+        version: link:../core
+      '@cortex/kit':
+        specifier: workspace:*
+        version: link:../kit
+      dotenv:
+        specifier: ^16.4.0
+        version: 16.6.1
+
   packages/smith:
     dependencies:
-      '@focus-swarm/core':
+      '@cortex/core':
         specifier: workspace:*
         version: link:../core
       dotenv:
@@ -132,7 +156,7 @@ importers:
 
   packages/synthesizer:
     dependencies:
-      '@focus-swarm/core':
+      '@cortex/core':
         specifier: workspace:*
         version: link:../core
       dotenv:
@@ -141,16 +165,16 @@ importers:
 
   packages/ui:
     dependencies:
-      '@focus-swarm/core':
+      '@cortex/core':
         specifier: workspace:*
         version: link:../core
-      '@focus-swarm/orchestrator':
+      '@cortex/orchestrator':
         specifier: workspace:*
         version: link:../orchestrator
-      '@focus-swarm/smith':
+      '@cortex/smith':
         specifier: workspace:*
         version: link:../smith
-      '@focus-swarm/synthesizer':
+      '@cortex/synthesizer':
         specifier: workspace:*
         version: link:../synthesizer
       next:

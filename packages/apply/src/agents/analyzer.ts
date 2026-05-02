@@ -78,7 +78,7 @@ function pickAngle(job: JobInput, proofPoints: string[], gaps: string[]): string
   }
 
   if (contains(job.role, "operations") || contains(job.role, "strategy")) {
-    return "Frame Ahoura as a builder-operator who can diagnose messy systems and ship fixes.";
+    return "Frame candidate as a builder-operator who can diagnose messy systems and ship fixes.";
   }
 
   if (contains(job.role, "PM") || contains(job.role, "product")) {

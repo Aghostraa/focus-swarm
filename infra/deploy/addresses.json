@@ -2,6 +2,6 @@
   "network": "galileo",
   "chainId": 16602,
   "MintPersona": "0x1f45C631456f55dA565fCb5e8e063a0dD4B6380B",
-  "OffchainResolver": null,
+  "OffchainResolver": "0xaB32d4b316bE27cE47fCbf92A321f24B22c49121",
   "ENSParent": "cortex.eth"
 }

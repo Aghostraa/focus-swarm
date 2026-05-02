@@ -10,7 +10,8 @@ export const packageRoot = findPackageRoot(here);
 function findPackageRoot(start: string): string {
   let current = start;
   for (let depth = 0; depth < 6; depth += 1) {
-    if (existsSync(join(current, "ahoura-style-guide.md"))) return current;
+    // Look for package.json to identify package root
+    if (existsSync(join(current, "package.json")) && existsSync(join(current, "style-guide.md"))) return current;
     current = dirname(current);
   }
 
@@ -38,7 +39,7 @@ async function readTrainingLetters(rootDir: string): Promise<TrainingLetter[]> {
 
 export async function loadProfileContext(rootDir = packageRoot): Promise<ProfileContext> {
   const [styleGuide, profileContext, trainingLetters, tracker] = await Promise.all([
-    readText(join(rootDir, "ahoura-style-guide.md")),
+    readText(join(rootDir, "style-guide.md")),
     readText(join(rootDir, "profile-context.md")),
     readTrainingLetters(rootDir),
     readJson<Tracker>(join(rootDir, "applications", "tracker.json"))
@@ -59,7 +60,7 @@ export function summarizeProfile(context: ProfileContext): string {
     .join("; ");
 
   return [
-    "Ahoura's positioning:",
+    "Candidate positioning:",
     context.profileContext,
     "",
     "Writing rules:",

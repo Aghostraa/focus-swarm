@@ -55,8 +55,8 @@ export function checkDraft(job: JobInput, draft: LetterDraft, analysis: Analysis
     suggestions.push("Consider naming the main gap briefly instead of letting the reviewer infer it.");
   }
 
-  if (!/\bBest,\nAhoura\b/.test(draft.coverLetter)) {
-    suggestions.push("Use the preferred simple signoff: Best, Ahoura.");
+  if (!/\bBest,\n/i.test(draft.coverLetter)) {
+    suggestions.push("Use a simple, professional signoff (e.g., Best, [Your Name]).");
   }
 
   const score = Math.max(0, 100 - issues.length * 18 - suggestions.length * 6);

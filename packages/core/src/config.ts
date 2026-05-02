@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 // .env lives at repo root; resolve from this file's location regardless of CWD
 const root = resolve(fileURLToPath(import.meta.url), '../../../..');
 loadDotenv({ path: resolve(root, '.env') });
+loadDotenv({ path: resolve(root, '.env.local'), override: true }); // Override with .env.local if exists
 
 export const RPC_URL = process.env.ZG_RPC_URL ?? 'https://evmrpc-testnet.0g.ai';
 export const INDEXER_URL = process.env.ZG_INDEXER_URL ?? 'https://indexer-storage-testnet-turbo.0g.ai';

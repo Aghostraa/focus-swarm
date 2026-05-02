@@ -1,14 +1,37 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { packageRoot } from "./profile.js";
+import { packageRoot, loadProfileContext } from "./profile.js";
 import { runApplicationPipeline } from "./pipeline.js";
+import { setAgentState } from "@cortex/kit";
 import type { ApplicationRecord, ApplicationStatus, JobInput, Tracker } from "./types.js";
 
 const command = process.argv[2] ?? "help";
 const args = parseArgs(process.argv.slice(3));
 
 try {
-  if (command === "create") {
+  if (command === "init") {
+    try {
+      const context = await loadProfileContext();
+      const profile = {
+        summary: context.profileContext.split("\n")[0],
+        experience: context.profileContext,
+        skills: [],
+        targetRoles: [],
+        culture: context.profileContext
+      };
+      await setAgentState("apply-twin", "profile", profile);
+      console.log("✓ Profile initialized in 0G Storage");
+      console.log("✓ Ready to start: pnpm twin");
+    } catch (initErr) {
+      console.error("Profile init failed. Check 0G env vars:");
+      console.error("  ZERO_G_PRIVATE_KEY=0x...");
+      console.error("  ZERO_G_RPC_URL=https://evmrpc-testnet.0g.ai");
+      console.error("  ZERO_G_KV_NODE_URL=http://3.101.147.150:6789");
+      console.error("  ZEROG_BROKER_URL=http://3.101.147.150:4869");
+      console.error("\nError:", (initErr as Error).message);
+      throw initErr;
+    }
+  } else if (command === "create") {
     const job = await readJobInput(args);
     const result = await runApplicationPipeline(job, {
       status: option(args, "status") as ApplicationStatus | undefined,
@@ -112,10 +135,19 @@ function formatApplicationLine(app: ApplicationRecord): string {
 
 function printHelp(): void {
   console.log(`Usage:
+  pnpm profile:init                    Initialize profile in 0G Storage
+  pnpm twin                            Start apply twin (MCP server)
   pnpm -F @cortex/apply start create --company=CoW --role="Integration Engineer" --job=job.txt
   pnpm -F @cortex/apply list
   pnpm -F @cortex/apply tracker
   pnpm -F @cortex/apply start show --company=CoW
+
+Setup:
+  1. cp style-guide.template.md style-guide.md
+  2. cp profile-context.template.md profile-context.md
+  3. Edit both files with your background + voice
+  4. pnpm profile:init
+  5. pnpm twin
 
 Create options:
   --file=job.json          JSON with company, role, description, and optional metadata
