@@ -14,7 +14,7 @@ Each agent gets:
 ## Build Local Agent Brains
 
 ```bash
-pnpm -F @focus-swarm/kit build-agents
+pnpm -F @cortex/kit build-agents
 ```
 
 Output:
@@ -33,5 +33,5 @@ Requires a funded 0G testnet wallet and the ENS gateway when registering records
 ```bash
 PERSISTENT_AGENTS_UPLOAD=1 \
 PERSISTENT_AGENTS_REGISTER_ENS=1 \
-pnpm -F @focus-swarm/kit build-agents
+pnpm -F @cortex/kit build-agents
 ```

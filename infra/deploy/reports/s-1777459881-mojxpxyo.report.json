@@ -1,6 +1,6 @@
 {
   "sessionId": "s-1777459881-mojxpxyo",
-  "productBrief": "focus-swarm: synthetic focus-group platform with persistent AI personas",
+  "productBrief": "cortex: synthetic focus-group platform with persistent AI personas",
   "participantCount": 6,
   "utteranceCount": 12,
   "themes": [
@@ -30,7 +30,7 @@
   "generatedAt": 1777460094687,
   "personaInsights": [
     {
-      "ensName": "ux-researcher-web3.cohort-99.focusgroup.eth",
+      "ensName": "ux-researcher-web3.cohort-99.cortex.eth",
       "role": "user-advocate",
       "sessionCount": 0,
       "topDomains": [],
@@ -44,28 +44,28 @@
       "keyContribution": "There is a need for clearer communication on the benefits of AI personas beyond just cost."
     },
     {
-      "ensName": "solo-founder-berlin.cohort-1777224501.focusgroup.eth",
+      "ensName": "solo-founder-berlin.cohort-1777224501.cortex.eth",
       "role": "pm",
       "sessionCount": 0,
       "topDomains": [],
       "keyContribution": "As a product manager, I see the importance of balancing user feedback clarity with the development process."
     },
     {
-      "ensName": "technical-pm-singapore.cohort-1777224501.focusgroup.eth",
+      "ensName": "technical-pm-singapore.cohort-1777224501.cortex.eth",
       "role": "technical-skeptic",
       "sessionCount": 0,
       "topDomains": [],
       "keyContribution": "Technical skepticism towards the reliability and accuracy of AI-generated feedback needs to be addressed."
     },
     {
-      "ensName": "solo-founder-ai-tooling.cohort-99.focusgroup.eth",
+      "ensName": "solo-founder-ai-tooling.cohort-99.cortex.eth",
       "role": "pm",
       "sessionCount": 1,
       "topDomains": [],
       "keyContribution": "Existing user feedback is often too abstract, lacking specific details that could be actionable."
     },
     {
-      "ensName": "skeptical-engineer-crypto.cohort-99.focusgroup.eth",
+      "ensName": "skeptical-engineer-crypto.cohort-99.cortex.eth",
       "role": "technical-skeptic",
       "sessionCount": 1,
       "topDomains": [],

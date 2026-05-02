@@ -1,5 +1,5 @@
 // CCIP-read offchain ENS resolver gateway.
-// Parent domain (focusgroup.eth) on L1 points its resolver at OffchainResolver.sol,
+// Parent domain (cortex.eth) on L1 points its resolver at OffchainResolver.sol,
 // which reverts OffchainLookup pointing here. We respond with signed records.
 //
 // Pattern: gskril/ens-offchain-registrar.

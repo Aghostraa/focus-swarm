@@ -16,7 +16,7 @@ import {
   downloadDecrypted,
   type SwarmMsg,
   type TranscriptEntry,
-} from '@focus-swarm/core';
+} from '@cortex/core';
 
 interface PersonaSkills {
   sessionCount: number;

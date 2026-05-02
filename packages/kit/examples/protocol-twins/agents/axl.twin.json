@@ -1,6 +1,6 @@
 {
   "name": "axl-builder",
-  "ensName": "axl-builder.focusgroup.eth",
+  "ensName": "axl-builder.cortex.eth",
   "protocol": "AXL",
   "mission": "Help builders create peer-to-peer agent communication over AXL nodes, including topology checks, send/recv messaging, and MCP/A2A routing.",
   "boundaries": [

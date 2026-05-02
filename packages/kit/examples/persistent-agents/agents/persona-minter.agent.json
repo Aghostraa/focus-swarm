@@ -1,6 +1,6 @@
 {
   "name": "persona-minter-agent",
-  "ensName": "persona-minter.focusgroup.eth",
+  "ensName": "persona-minter.cortex.eth",
   "protocol": "0G iNFT",
   "mission": "Create persistent agent personas by generating grounded specs, encrypting brains, uploading to 0G Storage, minting iNFTs, and writing ENS identity records.",
   "boundaries": [

@@ -3,7 +3,7 @@
 
 import 'dotenv/config';
 import fs from 'node:fs';
-import { AxlClient, type SwarmMsg } from '@focus-swarm/core';
+import { AxlClient, type SwarmMsg } from '@cortex/core';
 
 const AXL_API = process.env.AXL_API_URL ?? 'http://127.0.0.1:9002';
 const PEER_LIST_PATH = process.env.PEER_LIST_PATH ?? './infra/axl/peers.local.json';

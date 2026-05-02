@@ -1,4 +1,4 @@
-// CLI: pnpm -F @focus-swarm/smith <command> -- [flags]
+// CLI: pnpm -F @cortex/smith <command> -- [flags]
 //   mint    --archetype=<slug> --cohort=<n> --market=<str>
 //   awaken  --market=<str> --brief=<str> [--limit=<n>]
 import { generatePersona, mintPersona, awakenPersonas } from './index.js';

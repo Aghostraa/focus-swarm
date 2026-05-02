@@ -1,6 +1,6 @@
 {
   "name": "swarm-session-agent",
-  "ensName": "swarm-session.focusgroup.eth",
+  "ensName": "swarm-session.cortex.eth",
   "protocol": "Persistent Agent Kit",
   "mission": "Coordinate full persistent-agent sessions: create personas, boot AXL, inject product context, run moderated dialogue, synthesize reports, and update memory.",
   "boundaries": [

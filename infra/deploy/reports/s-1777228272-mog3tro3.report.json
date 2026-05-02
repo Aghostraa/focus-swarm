@@ -1,6 +1,6 @@
 {
   "sessionId": "s-1777228272-mog3tro3",
-  "productBrief": "focus-swarm: a synthetic focus group platform where AI personas with persistent memory debate your product. Personas are iNFTs on 0G Storage, talk over AXL P2P mesh, get verified by TeeML, and grow smarter each session. No recruiting, no scheduling — run a 9-turn focus group in minutes.",
+  "productBrief": "cortex: a synthetic focus group platform where AI personas with persistent memory debate your product. Personas are iNFTs on 0G Storage, talk over AXL P2P mesh, get verified by TeeML, and grow smarter each session. No recruiting, no scheduling — run a 9-turn focus group in minutes.",
   "participantCount": 3,
   "utteranceCount": 5,
   "themes": [
@@ -30,21 +30,21 @@
   "generatedAt": 1777228771543,
   "personaInsights": [
     {
-      "ensName": "skeptical-engineer-crypto.cohort-99.focusgroup.eth",
+      "ensName": "skeptical-engineer-crypto.cohort-99.cortex.eth",
       "role": "technical-skeptic",
       "sessionCount": 0,
       "topDomains": [],
       "keyContribution": "There's a need for better tools that can handle the subtleties of human behavior in long-term studies."
     },
     {
-      "ensName": "solo-founder-ai-tooling.cohort-99.focusgroup.eth",
+      "ensName": "solo-founder-ai-tooling.cohort-99.cortex.eth",
       "role": "pm",
       "sessionCount": 0,
       "topDomains": [],
       "keyContribution": "The product should focus on providing clear and simple integration with existing development workflows to avoid complicating things for developers."
     },
     {
-      "ensName": "ux-researcher-web3.cohort-99.focusgroup.eth",
+      "ensName": "ux-researcher-web3.cohort-99.cortex.eth",
       "role": "user-advocate",
       "sessionCount": 0,
       "topDomains": [],

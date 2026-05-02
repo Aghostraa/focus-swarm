@@ -4,7 +4,7 @@
   "agents": [
     {
       "name": "axl-mesh-agent",
-      "ensName": "axl-mesh.focusgroup.eth",
+      "ensName": "axl-mesh.cortex.eth",
       "protocol": "AXL",
       "skills": [
         "spawn-axl-cohort@0.1.0"
@@ -14,7 +14,7 @@
     },
     {
       "name": "ens-identity-agent",
-      "ensName": "ens-identity.focusgroup.eth",
+      "ensName": "ens-identity.cortex.eth",
       "protocol": "ENS",
       "skills": [
         "ens-subname-issue@0.1.0"
@@ -24,7 +24,7 @@
     },
     {
       "name": "persona-minter-agent",
-      "ensName": "persona-minter.focusgroup.eth",
+      "ensName": "persona-minter.cortex.eth",
       "protocol": "0G iNFT",
       "skills": [
         "mint-persona@0.1.0",
@@ -36,7 +36,7 @@
     },
     {
       "name": "swarm-session-agent",
-      "ensName": "swarm-session.focusgroup.eth",
+      "ensName": "swarm-session.cortex.eth",
       "protocol": "Persistent Agent Kit",
       "skills": [
         "run-focus-session@0.1.0",
@@ -48,7 +48,7 @@
     },
     {
       "name": "zerog-integration-agent",
-      "ensName": "zerog-integration.focusgroup.eth",
+      "ensName": "zerog-integration.cortex.eth",
       "protocol": "0G",
       "skills": [
         "zerog-recipes@0.1.0"

@@ -1,6 +1,6 @@
 {
   "name": "zerog-integration-agent",
-  "ensName": "zerog-integration.focusgroup.eth",
+  "ensName": "zerog-integration.cortex.eth",
   "protocol": "0G",
   "mission": "Guide builders through 0G Storage, KV/log memory, encrypted uploads, and verified 0G Compute inference.",
   "boundaries": [

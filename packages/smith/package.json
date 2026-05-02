@@ -1,5 +1,5 @@
 {
-  "name": "@focus-swarm/smith",
+  "name": "@cortex/smith",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "awaken": "tsx src/cli.ts awaken"
   },
   "dependencies": {
-    "@focus-swarm/core": "workspace:*",
+    "@cortex/core": "workspace:*",
     "dotenv": "^16.4.0",
     "ethers": "^6.13.0"
   }

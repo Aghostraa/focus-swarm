@@ -1,6 +1,6 @@
 {
   "name": "ens-identity-agent",
-  "ensName": "ens-identity.focusgroup.eth",
+  "ensName": "ens-identity.cortex.eth",
   "protocol": "ENS",
   "mission": "Give persistent agents human-readable ENS identity, subnames, text records, and discoverability metadata.",
   "boundaries": [

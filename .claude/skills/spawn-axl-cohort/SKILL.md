@@ -5,7 +5,7 @@ description: Bring up N AXL peer-to-peer nodes locally with distinct identities 
 
 # spawn-axl-cohort
 
-Spawn N AXL nodes (Yggdrasil-based encrypted P2P mesh, used as agent communication layer for the focus-swarm project).
+Spawn N AXL nodes (Yggdrasil-based encrypted P2P mesh, used as agent communication layer for the cortex project).
 
 ## Inputs
 - `N` — number of nodes (default 4: 1 moderator + 3 personas, or scale up)
@@ -24,7 +24,7 @@ Spawn N AXL nodes (Yggdrasil-based encrypted P2P mesh, used as agent communicati
 ## Steps Claude should follow
 1. Confirm `infra/axl/bin/node` exists. If not, instruct user to:
    ```
-   cd ../0g-doc/axl && make build && cp ./node ../../focus-swarm/infra/axl/bin/node
+   cd ../0g-doc/axl && make build && cp ./node ../../cortex/infra/axl/bin/node
    ```
 2. For each `i in 0..N-1`:
    - Generate key: `openssl genpkey -algorithm ed25519 -out infra/axl/keys/node-${i}.pem`

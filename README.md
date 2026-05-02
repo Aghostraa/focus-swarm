@@ -1,4 +1,4 @@
-# focus-swarm
+# cortex
 
 ## Pivot: Persistent Agent Kit
 
@@ -10,7 +10,7 @@ The flagship example is **Protocol Twins**: three specialist agents for 0G, AXL,
 pnpm e2e:kit
 ```
 
-The original focus-swarm app remains as an example of agents built on the same protocol primitives.
+The original cortex app remains as an example of agents built on the same protocol primitives.
 
 **Synthetic focus-group agent swarm** on 0G + Gensyn AXL + ENS.
 
@@ -22,7 +22,7 @@ A researcher specifies a target market and a product. The system spawns archetyp
 - **Persona memory** — 0G Storage KV (mood, current opinion vector) + Log-on-KV (utterance history). Streams keyed `persona:<tokenId>:state` and `persona:<tokenId>:log`.
 - **Inference** — every reply runs through 0G Compute (`broker.inference.processResponse()` — TeeML verification). Persona refuses to broadcast unverified replies.
 - **Inter-persona dialogue** — every persona is its own AXL node (own ed25519 identity, own ports). Moderator and personas communicate by `POST /send` + `GET /recv` over the encrypted Yggdrasil mesh. **No central message broker.**
-- **Identity** — every persona resolves at `<archetype>.cohort-<n>.focusgroup.eth` with text records: `agent.inft`, `agent.axl_peer`, `agent.archetype`, `agent.resume`, `agent.last_session`. Self-hosted CCIP-read offchain resolver (free, ENSv2-ready).
+- **Identity** — every persona resolves at `<archetype>.cohort-<n>.cortex.eth` with text records: `agent.inft`, `agent.axl_peer`, `agent.archetype`, `agent.resume`, `agent.last_session`. Self-hosted CCIP-read offchain resolver (free, ENSv2-ready).
 
 ## Architecture
 
@@ -61,7 +61,7 @@ A researcher specifies a target market and a product. The system spawns archetyp
 - **Track requirement satisfied** — communication crosses separate AXL processes, not just in-process. `peers.local.json` proves N+1 distinct pubkeys.
 
 ### 🪪 ENS for AI Agents
-- **Subname-per-persona** — `<archetype>.cohort-<n>.focusgroup.eth`.
+- **Subname-per-persona** — `<archetype>.cohort-<n>.cortex.eth`.
 - **Real records** — iNFT pointer, AXL peer ID, archetype, encrypted-resume URI, last-session report URI.
 - **Self-hosted CCIP-read gateway** — `packages/ens-gateway/`. Express + SQLite. Parent's L1 resolver delegates here via EIP-3668 wildcard; subnames are free DB writes.
 - **Resolves via stock viem** — `client.getEnsText({ name, key: 'agent.inft' })` works without library mods.
@@ -78,9 +78,9 @@ A researcher specifies a target market and a product. The system spawns archetyp
 ```bash
 pnpm install
 # Build the AXL binary from the docs repo
-(cd ../0g-doc/axl && make build && cp ./node ../../focus-swarm/infra/axl/bin/node)
+(cd ../0g-doc/axl && make build && cp ./node ../../cortex/infra/axl/bin/node)
 # Compile contracts
-pnpm -F @focus-swarm/contracts compile
+pnpm -F @cortex/contracts compile
 ```
 
 ### 2. Configure
@@ -103,7 +103,7 @@ pnpm deploy:contracts
 
 ### 5. Run ENS gateway (separate terminal)
 ```bash
-pnpm -F @focus-swarm/ens-gateway dev
+pnpm -F @cortex/ens-gateway dev
 ```
 
 ### 6. Run a session
@@ -112,7 +112,7 @@ pnpm -F @focus-swarm/ens-gateway dev
 TARGET_MARKET="Gen-Z renters in Berlin who use BeReal" \
 PRODUCT_BRIEF="A subscription habit tracker that auto-snaps your habits" \
 ARCHETYPES="genz-renter-berlin,solo-founder-mumbai,boomer-dad-houston" \
-pnpm -F @focus-swarm/orchestrator run
+pnpm -F @cortex/orchestrator run
 ```
 
 **Via UI:**
@@ -153,7 +153,7 @@ CLAUDE.md         Project invariants (no central broker, all inference via 0G Co
 ```
 
 ## Submission metadata
-- **Project name** — focus-swarm
+- **Project name** — cortex
 - **Network** — 0G testnet Galileo (chain 16602)
 - **Contract** — see `infra/deploy/addresses.json` after deploy
 - **iNFT explorer** — `https://chainscan-galileo.0g.ai/address/<MintPersona>`

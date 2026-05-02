@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runSession } from '@focus-swarm/orchestrator';
+import { runSession } from '@cortex/orchestrator';
 import { sessionStore } from './store';
 
 export const runtime = 'nodejs';

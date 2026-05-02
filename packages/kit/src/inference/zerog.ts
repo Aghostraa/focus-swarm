@@ -13,7 +13,7 @@ export interface ChatResult {
 }
 
 export async function verifiedReason(messages: ChatMsg[]): Promise<ChatResult> {
-  const { chat } = await import('@focus-swarm/core');
+  const { chat } = await import('@cortex/core');
   const result = await chat(messages);
   if (!result.verified) throw new Error('0G Compute response was not verified');
   return result;

@@ -4,7 +4,7 @@
 import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
-import { chat, uploadPlain, downloadPlain, type ChatMsg } from '@focus-swarm/core';
+import { chat, uploadPlain, downloadPlain, type ChatMsg } from '@cortex/core';
 
 interface TranscriptEntry { speaker: string; text: string; ts: number; }
 

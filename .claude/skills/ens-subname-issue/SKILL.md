@@ -8,11 +8,11 @@ description: Issue an ENS subname via the local CCIP-read gateway and resolve it
 Self-hosted offchain (CCIP-read EIP-3668) ENS subname issuance. Free per-subname (DB write).
 
 ## Prereqs (one-time)
-1. Own parent domain (e.g. `focusgroup.eth`).
+1. Own parent domain (e.g. `cortex.eth`).
 2. Deploy `OffchainResolver.sol` (from `gskril/ens-offchain-registrar` or similar).
-3. `ENSRegistry.setResolver(namehash('focusgroup.eth'), offchainResolverAddr)`.
-4. Run gateway: `pnpm -F @focus-swarm/ens-gateway dev`.
-5. Set env: `ENS_GATEWAY_URL=http://localhost:8787`, `ENS_PARENT_NAME=focusgroup.eth`.
+3. `ENSRegistry.setResolver(namehash('cortex.eth'), offchainResolverAddr)`.
+4. Run gateway: `pnpm -F @cortex/ens-gateway dev`.
+5. Set env: `ENS_GATEWAY_URL=http://localhost:8787`, `ENS_PARENT_NAME=cortex.eth`.
 
 ## Issue subname
 ```ts
@@ -39,7 +39,7 @@ import { createPublicClient, http, normalize } from 'viem';
 import { mainnet } from 'viem/chains';
 
 const client = createPublicClient({ chain: mainnet, transport: http() });
-const name = normalize(`boomer-dad.cohort-1.focusgroup.eth`);
+const name = normalize(`boomer-dad.cohort-1.cortex.eth`);
 
 const [addr, inftRec, axlRec] = await Promise.all([
   client.getEnsAddress({ name }),

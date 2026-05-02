@@ -10,12 +10,12 @@ Framework package for building persistent agents with:
 - 0G Compute verified reasoning wrapper
 - 0G Storage proof bundle and skill manifest upload helpers
 
-This package is the framework pivot. `focus-swarm` becomes one example app; `Protocol Twins` is the flagship framework example.
+This package is the framework pivot. `cortex` becomes one example app; `Protocol Twins` is the flagship framework example.
 
 ## Protocol Twins Example
 
 ```bash
-pnpm -F @focus-swarm/kit protocol-twins
+pnpm -F @cortex/kit protocol-twins
 ```
 
 The dry-run path writes:
@@ -30,7 +30,7 @@ Full protocol mode:
 PROTOCOL_TWINS_VERIFIED=1 \
 PROTOCOL_TWINS_UPLOAD=1 \
 PROTOCOL_TWINS_REGISTER_ENS=1 \
-pnpm -F @focus-swarm/kit protocol-twins
+pnpm -F @cortex/kit protocol-twins
 ```
 
 ## Framework Claim
@@ -39,8 +39,8 @@ MCP gives agents tools. Persistent Agent Kit gives tool-using agents durable ide
 
 The Protocol Twins example demonstrates three specialist agents:
 
-- `zerog-builder.focusgroup.eth`
-- `axl-builder.focusgroup.eth`
-- `ens-builder.focusgroup.eth`
+- `zerog-builder.cortex.eth`
+- `axl-builder.cortex.eth`
+- `ens-builder.cortex.eth`
 
 Each twin owns protocol-specific skills and can participate in a cross-protocol builder task.

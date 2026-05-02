@@ -27,7 +27,7 @@
     "agents": [
       {
         "name": "axl-builder",
-        "ensName": "axl-builder.focusgroup.eth",
+        "ensName": "axl-builder.cortex.eth",
         "protocol": "AXL",
         "verifiedReasoningCount": 0,
         "installedSkills": [
@@ -37,7 +37,7 @@
       },
       {
         "name": "ens-builder",
-        "ensName": "ens-builder.focusgroup.eth",
+        "ensName": "ens-builder.cortex.eth",
         "protocol": "ENS",
         "verifiedReasoningCount": 0,
         "installedSkills": [
@@ -46,7 +46,7 @@
       },
       {
         "name": "zerog-builder",
-        "ensName": "zerog-builder.focusgroup.eth",
+        "ensName": "zerog-builder.cortex.eth",
         "protocol": "0G",
         "verifiedReasoningCount": 0,
         "installedSkills": [
@@ -57,7 +57,7 @@
     ],
     "artifacts": {
       "mode": "dry-run",
-      "skillsSource": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills"
+      "skillsSource": "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills"
     },
     "generatedAt": 1777474042664
   },

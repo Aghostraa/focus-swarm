@@ -13,7 +13,7 @@ import {
 
 async function main() {
   const key = crypto.randomBytes(32);
-  const payload = Buffer.from(JSON.stringify({ hello: 'focus-swarm', t: Date.now() }));
+  const payload = Buffer.from(JSON.stringify({ hello: 'cortex', t: Date.now() }));
 
   console.log('[smoke] encrypt+upload, bytes:', payload.length);
   const up = await uploadEncrypted(payload, key);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { awakenPersonas } from '@focus-swarm/smith';
+import { awakenPersonas } from '@cortex/smith';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;

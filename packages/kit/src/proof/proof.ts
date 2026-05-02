@@ -49,7 +49,7 @@ export function createProofBundle(input: {
 }
 
 export async function uploadProofBundle(bundle: SessionProofBundle): Promise<{ rootHash: string; txHash: string }> {
-  const { uploadPlain } = await import('@focus-swarm/core');
+  const { uploadPlain } = await import('@cortex/core');
   const uploaded = await uploadPlain(Buffer.from(JSON.stringify(bundle, null, 2)));
   return { rootHash: uploaded.rootHash, txHash: uploaded.txHash };
 }

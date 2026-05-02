@@ -1,5 +1,5 @@
 {
-  "name": "@focus-swarm/orchestrator",
+  "name": "@cortex/orchestrator",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -8,9 +8,9 @@
     "run": "tsx src/cli.ts"
   },
   "dependencies": {
-    "@focus-swarm/core": "workspace:*",
-    "@focus-swarm/smith": "workspace:*",
-    "@focus-swarm/synthesizer": "workspace:*",
+    "@cortex/core": "workspace:*",
+    "@cortex/smith": "workspace:*",
+    "@cortex/synthesizer": "workspace:*",
     "dotenv": "^16.4.0"
   }
 }

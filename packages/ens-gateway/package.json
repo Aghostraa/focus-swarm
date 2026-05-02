@@ -1,5 +1,5 @@
 {
-  "name": "@focus-swarm/ens-gateway",
+  "name": "@cortex/ens-gateway",
   "version": "0.0.1",
   "private": true,
   "type": "module",

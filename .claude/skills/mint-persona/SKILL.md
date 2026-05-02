@@ -10,7 +10,7 @@ Single command path from archetype spec to live persona NFT + ENS subname.
 ## Inputs (PersonaSpec)
 - `archetype` — slug like `"boomer-dad-houston"`, `"genz-renter-berlin"`
 - `targetMarket` — string brief shaping persona priors
-- `cohortId` — number, used in ENS subname `<archetype>.cohort-<N>.focusgroup.eth`
+- `cohortId` — number, used in ENS subname `<archetype>.cohort-<N>.cortex.eth`
 
 ## Output
 ```ts
@@ -40,7 +40,7 @@ Single command path from archetype spec to live persona NFT + ENS subname.
 5. **Register ENS subname**: POST to local gateway:
    ```
    POST http://localhost:8787/set
-   { "name": "<archetype>.cohort-<N>.focusgroup.eth",
+   { "name": "<archetype>.cohort-<N>.cortex.eth",
      "addresses": { "60": <ownerAddr> },
      "texts": {
        "agent.inft": "<inftAddr>:<tokenId>",

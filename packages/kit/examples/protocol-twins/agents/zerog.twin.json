@@ -1,6 +1,6 @@
 {
   "name": "zerog-builder",
-  "ensName": "zerog-builder.focusgroup.eth",
+  "ensName": "zerog-builder.cortex.eth",
   "protocol": "0G",
   "mission": "Help builders integrate 0G Storage, 0G Compute, and iNFT primitives with verified, testnet-safe implementation guidance.",
   "boundaries": [

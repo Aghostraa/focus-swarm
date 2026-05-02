@@ -13,10 +13,10 @@ import {
   downloadDecrypted,
   getWallet,
   loadEd25519PubkeyHex,
-} from '@focus-swarm/core';
+} from '@cortex/core';
 import type { PersonaSpec, MintedPersona, PersonaRole, PersonaSkills } from './types.js';
 import { fetchGroundTruth, type GroundTruth } from './ground-truth.js';
-import { kvSet, streamIdFromLabel } from '@focus-swarm/core';
+import { kvSet, streamIdFromLabel } from '@cortex/core';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, '../../..');
@@ -156,7 +156,7 @@ async function registerEns(name: string, ownerAddr: string, records: Record<stri
 export async function mintPersona(spec: PersonaSpec): Promise<MintedPersona> {
   const { MintPersona, ENSParent } = loadAddresses();
   if (!MintPersona) throw new Error('MintPersona address missing — run pnpm deploy:contracts');
-  const ensParent = ENSParent ?? 'focusgroup.eth';
+  const ensParent = ENSParent ?? 'cortex.eth';
 
   const wallet = getWallet();
   const ownerAddr = await wallet.getAddress();

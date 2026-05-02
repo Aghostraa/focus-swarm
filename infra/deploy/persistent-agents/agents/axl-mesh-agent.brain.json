@@ -2,7 +2,7 @@
   "schemaVersion": "persistent-agent-kit/v1",
   "identity": {
     "name": "axl-mesh-agent",
-    "ensName": "axl-mesh.focusgroup.eth",
+    "ensName": "axl-mesh.cortex.eth",
     "protocol": "AXL",
     "mission": "Operate AXL peer-to-peer agent meshes, including node spawning, topology verification, peer messaging, and MCP/A2A routing guidance.",
     "boundaries": [
@@ -38,7 +38,7 @@
         "boot",
         "swarm"
       ],
-      "sourcePath": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/spawn-axl-cohort/SKILL.md",
+      "sourcePath": "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/spawn-axl-cohort/SKILL.md",
       "installedAt": 1777475436464,
       "enabled": true
     }
@@ -48,7 +48,7 @@
       {
         "id": "skill-note-spawn-axl-cohort",
         "text": "axl-mesh-agent has installed spawn-axl-cohort@0.1.0: Bring up N AXL peer-to-peer nodes locally with distinct identities + ports + bootstrap mesh. Use when user says \"spin up axl cohort\", \"start N persona nodes\", \"boot the swarm\".",
-        "source": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/spawn-axl-cohort/SKILL.md",
+        "source": "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/spawn-axl-cohort/SKILL.md",
         "confidence": 0.9,
         "updatedAt": 1777475436464
       }
@@ -60,7 +60,7 @@
         "fix": "Apply spawn-axl-cohort@0.1.0 instructions and record command outcomes as episodic memory.",
         "protocol": "AXL",
         "evidence": [
-          "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/spawn-axl-cohort/SKILL.md"
+          "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/spawn-axl-cohort/SKILL.md"
         ],
         "successCount": 0,
         "failureCount": 0,

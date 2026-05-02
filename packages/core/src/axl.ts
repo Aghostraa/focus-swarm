@@ -48,14 +48,16 @@ export class AxlClient {
 }
 
 /**
- * Standard envelope used by focus-swarm over AXL `/send`. Personas and the
+ * Standard envelope used by cortex over AXL `/send`. Personas and the
  * moderator dispatch on `type`.
  */
 export type SwarmMsg =
   | { type: 'turn'; sessionId: string; speaker: string; prompt: string; transcriptTail: TranscriptEntry[] }
   | { type: 'utterance'; sessionId: string; speaker: string; text: string; ts: number }
   | { type: 'observation'; sessionId: string; source: string; content: string; ts: number }
-  | { type: 'session-end'; sessionId: string };
+  | { type: 'session-end'; sessionId: string }
+  | { type: 'query'; from: string; question: string; context?: string; requestId: string }
+  | { type: 'answer'; from: string; question: string; answer: string; verified: boolean; requestId: string };
 
 export interface TranscriptEntry {
   speaker: string;

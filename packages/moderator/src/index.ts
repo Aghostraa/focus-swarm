@@ -13,7 +13,7 @@ import {
   streamIdFromLabel,
   type SwarmMsg,
   type TranscriptEntry,
-} from '@focus-swarm/core';
+} from '@cortex/core';
 
 const AXL_API = process.env.AXL_API_URL ?? 'http://127.0.0.1:9002';
 const PEER_LIST_PATH = process.env.PEER_LIST_PATH ?? './infra/axl/peers.local.json';

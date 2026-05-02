@@ -1,6 +1,6 @@
 {
   "name": "ens-builder",
-  "ensName": "ens-builder.focusgroup.eth",
+  "ensName": "ens-builder.cortex.eth",
   "protocol": "ENS",
   "mission": "Help builders give agents durable ENS identities, text records, subnames, and discoverability metadata.",
   "boundaries": [

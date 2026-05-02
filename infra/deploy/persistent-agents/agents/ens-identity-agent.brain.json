@@ -2,7 +2,7 @@
   "schemaVersion": "persistent-agent-kit/v1",
   "identity": {
     "name": "ens-identity-agent",
-    "ensName": "ens-identity.focusgroup.eth",
+    "ensName": "ens-identity.cortex.eth",
     "protocol": "ENS",
     "mission": "Give persistent agents human-readable ENS identity, subnames, text records, and discoverability metadata.",
     "boundaries": [
@@ -33,7 +33,7 @@
         "register",
         "subdomain"
       ],
-      "sourcePath": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/ens-subname-issue/SKILL.md",
+      "sourcePath": "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/ens-subname-issue/SKILL.md",
       "installedAt": 1777475436464,
       "enabled": true
     }
@@ -43,7 +43,7 @@
       {
         "id": "skill-note-ens-subname-issue",
         "text": "ens-identity-agent has installed ens-subname-issue@0.1.0: Issue an ENS subname via the local CCIP-read gateway and resolve it back via viem. Use when user says \"issue ens subname\", \"set persona ens\", \"register subdomain\".",
-        "source": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/ens-subname-issue/SKILL.md",
+        "source": "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/ens-subname-issue/SKILL.md",
         "confidence": 0.9,
         "updatedAt": 1777475436464
       }
@@ -55,7 +55,7 @@
         "fix": "Apply ens-subname-issue@0.1.0 instructions and record command outcomes as episodic memory.",
         "protocol": "ENS",
         "evidence": [
-          "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/ens-subname-issue/SKILL.md"
+          "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/ens-subname-issue/SKILL.md"
         ],
         "successCount": 0,
         "failureCount": 0,

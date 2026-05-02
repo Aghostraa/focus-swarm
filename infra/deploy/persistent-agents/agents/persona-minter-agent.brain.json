@@ -2,7 +2,7 @@
   "schemaVersion": "persistent-agent-kit/v1",
   "identity": {
     "name": "persona-minter-agent",
-    "ensName": "persona-minter.focusgroup.eth",
+    "ensName": "persona-minter.cortex.eth",
     "protocol": "0G iNFT",
     "mission": "Create persistent agent personas by generating grounded specs, encrypting brains, uploading to 0G Storage, minting iNFTs, and writing ENS identity records.",
     "boundaries": [
@@ -36,7 +36,7 @@
         "spawn",
         "archetype"
       ],
-      "sourcePath": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/mint-persona/SKILL.md",
+      "sourcePath": "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/mint-persona/SKILL.md",
       "installedAt": 1777475436464,
       "enabled": true
     },
@@ -64,7 +64,7 @@
         "encrypted",
         "upload"
       ],
-      "sourcePath": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/zerog-recipes/SKILL.md",
+      "sourcePath": "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/zerog-recipes/SKILL.md",
       "installedAt": 1777475436464,
       "enabled": true
     },
@@ -89,7 +89,7 @@
         "register",
         "subdomain"
       ],
-      "sourcePath": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/ens-subname-issue/SKILL.md",
+      "sourcePath": "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/ens-subname-issue/SKILL.md",
       "installedAt": 1777475436464,
       "enabled": true
     }
@@ -99,21 +99,21 @@
       {
         "id": "skill-note-mint-persona",
         "text": "persona-minter-agent has installed mint-persona@0.1.0: End-to-end mint a persona iNFT. Generate persona via 0G Compute → encrypt brain → upload to 0G Storage → mint ERC-7857 → register ENS subname. Use when user says \"mint persona\", \"create persona iNFT\", \"spawn an archetype\".",
-        "source": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/mint-persona/SKILL.md",
+        "source": "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/mint-persona/SKILL.md",
         "confidence": 0.9,
         "updatedAt": 1777475436464
       },
       {
         "id": "skill-note-zerog-recipes",
         "text": "persona-minter-agent has installed zerog-recipes@0.1.0: Verified-working 0G Storage and 0G Compute snippets. Use when implementing any 0G SDK call. Triggers on \"0g storage how\", \"0g compute how\", \"verifiable inference snippet\", \"kv read\", \"kv write\", \"encrypted upload\".",
-        "source": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/zerog-recipes/SKILL.md",
+        "source": "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/zerog-recipes/SKILL.md",
         "confidence": 0.9,
         "updatedAt": 1777475436464
       },
       {
         "id": "skill-note-ens-subname-issue",
         "text": "persona-minter-agent has installed ens-subname-issue@0.1.0: Issue an ENS subname via the local CCIP-read gateway and resolve it back via viem. Use when user says \"issue ens subname\", \"set persona ens\", \"register subdomain\".",
-        "source": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/ens-subname-issue/SKILL.md",
+        "source": "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/ens-subname-issue/SKILL.md",
         "confidence": 0.9,
         "updatedAt": 1777475436464
       }
@@ -125,7 +125,7 @@
         "fix": "Apply mint-persona@0.1.0 instructions and record command outcomes as episodic memory.",
         "protocol": "0G iNFT",
         "evidence": [
-          "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/mint-persona/SKILL.md"
+          "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/mint-persona/SKILL.md"
         ],
         "successCount": 0,
         "failureCount": 0,
@@ -137,7 +137,7 @@
         "fix": "Apply zerog-recipes@0.1.0 instructions and record command outcomes as episodic memory.",
         "protocol": "0G iNFT",
         "evidence": [
-          "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/zerog-recipes/SKILL.md"
+          "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/zerog-recipes/SKILL.md"
         ],
         "successCount": 0,
         "failureCount": 0,
@@ -149,7 +149,7 @@
         "fix": "Apply ens-subname-issue@0.1.0 instructions and record command outcomes as episodic memory.",
         "protocol": "0G iNFT",
         "evidence": [
-          "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/ens-subname-issue/SKILL.md"
+          "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/ens-subname-issue/SKILL.md"
         ],
         "successCount": 0,
         "failureCount": 0,

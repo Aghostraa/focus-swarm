@@ -8,8 +8,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, ChildProcess } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { generatePersona, mintPersona, evolvePersona, type MintedPersona, type PersonaSpec } from '@focus-swarm/smith';
-import { runFromFile, type Report, type PersonaMeta } from '@focus-swarm/synthesizer';
+import { generatePersona, mintPersona, evolvePersona, type MintedPersona, type PersonaSpec } from '@cortex/smith';
+import { runFromFile, type Report, type PersonaMeta } from '@cortex/synthesizer';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, '../../..');
@@ -163,7 +163,7 @@ export async function runSession(input: SessionInput): Promise<SessionArtifacts>
       PERSONA_KEY_PATH: persona.keyPath,
     };
     const logFile = path.join(REPO_ROOT, 'infra/axl/logs', `persona-runtime-${persona.tokenId}.log`);
-    const c = spawnDetached('pnpm', ['-F', '@focus-swarm/persona', 'start'], env, logFile);
+    const c = spawnDetached('pnpm', ['-F', '@cortex/persona', 'start'], env, logFile);
     children.push(c);
     console.log(`[orch] persona ${persona.tokenId}${persona.isReuse ? ' (reused)' : ''} -> port ${peer.apiPort} pid=${c.pid}`);
   }
@@ -236,7 +236,7 @@ export async function runSession(input: SessionInput): Promise<SessionArtifacts>
       : {}),
   };
   console.log(`[orch] running moderator`);
-  const mod = await sh('pnpm', ['-F', '@focus-swarm/moderator', 'start'], { env: moderatorEnv });
+  const mod = await sh('pnpm', ['-F', '@cortex/moderator', 'start'], { env: moderatorEnv });
   if (mod.code !== 0) {
     killOrchestratedChildren(children);
     killCohort();

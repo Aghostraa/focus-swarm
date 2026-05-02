@@ -14,14 +14,14 @@ export function installSkillLocally(skill: SkillPack, rootHash?: string): Instal
 }
 
 export async function uploadSkillPack(skill: SkillPack): Promise<{ rootHash: string; txHash: string }> {
-  const { uploadPlain } = await import('@focus-swarm/core');
+  const { uploadPlain } = await import('@cortex/core');
   const body = JSON.stringify(skill, null, 2);
   const uploaded = await uploadPlain(Buffer.from(body));
   return { rootHash: uploaded.rootHash, txHash: uploaded.txHash };
 }
 
 export async function uploadSkillManifest(manifest: SkillManifest): Promise<{ rootHash: string; txHash: string }> {
-  const { uploadPlain } = await import('@focus-swarm/core');
+  const { uploadPlain } = await import('@cortex/core');
   const uploaded = await uploadPlain(Buffer.from(JSON.stringify(manifest, null, 2)));
   return { rootHash: uploaded.rootHash, txHash: uploaded.txHash };
 }

@@ -40,7 +40,7 @@ export async function consolidateMemory(brain: PersistentAgentBrain, events: Int
   let procedural: FixPattern[] = [];
 
   if (opts.verified) {
-    const { chat } = await import('@focus-swarm/core');
+    const { chat } = await import('@cortex/core');
     const prompt = [
       `Agent mission: ${brain.identity.mission}`,
       `Convert integration events into durable memory. Output strict JSON:`,

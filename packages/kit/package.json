@@ -1,5 +1,5 @@
 {
-  "name": "@focus-swarm/kit",
+  "name": "@cortex/kit",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "build-agents": "tsc && node dist/examples/persistent-agents/build-agents.js"
   },
   "dependencies": {
-    "@focus-swarm/core": "workspace:*",
+    "@cortex/core": "workspace:*",
     "dotenv": "^16.4.0"
   }
 }

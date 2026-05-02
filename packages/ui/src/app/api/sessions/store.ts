@@ -1,4 +1,4 @@
-import { type SessionArtifacts } from '@focus-swarm/orchestrator';
+import { type SessionArtifacts } from '@cortex/orchestrator';
 
 export interface SessionState {
   status: 'running' | 'done' | 'error';

@@ -1,4 +1,4 @@
-# focus-swarm
+# cortex
 
 Synthetic focus-group agents. Researcher specifies target market → swarm of archetype-driven personas spawns, holds moderated session, synthesizer reports findings. Personas persist across sessions as iNFTs with growing memory.
 
@@ -41,7 +41,7 @@ infra/
 ## Conventions
 - pnpm workspaces. Run from repo root: `pnpm -F <pkg> <script>`.
 - Each package has `scripts/smoke.ts` that hits testnet for end-to-end check before integration.
-- Persona ENS: `<archetype-slug>.cohort-<n>.focusgroup.eth`.
+- Persona ENS: `<archetype-slug>.cohort-<n>.cortex.eth`.
 - Persona iNFT tokenId = derived from cohort+slot index (deterministic).
 - AXL ports per node: api=`9002+i`, mcp=`9003+i`, a2a=`9004+i` (i = slot in cohort).
 

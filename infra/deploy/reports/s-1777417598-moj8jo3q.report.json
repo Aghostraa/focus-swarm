@@ -1,6 +1,6 @@
 {
   "sessionId": "s-1777417598-moj8jo3q",
-  "productBrief": "focus-swarm: A synthetic focus-group platform where AI personas with persistent memory debate products. Researchers define a target market; system mints archetype iNFTs encrypted on 0G Storage, spawns them as AXL peer-to-peer nodes, runs moderated multi-turn session, synthesizes findings. Personas accumulate skills across sessions. Key tensions: synthetic vs real insight, cost per session ($0.50), slower 0G Compute vs GPT-4, personas can only speak not act, session quality depends on archetype diversity.",
+  "productBrief": "cortex: A synthetic focus-group platform where AI personas with persistent memory debate products. Researchers define a target market; system mints archetype iNFTs encrypted on 0G Storage, spawns them as AXL peer-to-peer nodes, runs moderated multi-turn session, synthesizes findings. Personas accumulate skills across sessions. Key tensions: synthetic vs real insight, cost per session ($0.50), slower 0G Compute vs GPT-4, personas can only speak not act, session quality depends on archetype diversity.",
   "participantCount": 2,
   "utteranceCount": 2,
   "themes": [

@@ -2,7 +2,7 @@
   "schemaVersion": "persistent-agent-kit/v1",
   "identity": {
     "name": "zerog-integration-agent",
-    "ensName": "zerog-integration.focusgroup.eth",
+    "ensName": "zerog-integration.cortex.eth",
     "protocol": "0G",
     "mission": "Guide builders through 0G Storage, KV/log memory, encrypted uploads, and verified 0G Compute inference.",
     "boundaries": [
@@ -36,7 +36,7 @@
         "encrypted",
         "upload"
       ],
-      "sourcePath": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/zerog-recipes/SKILL.md",
+      "sourcePath": "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/zerog-recipes/SKILL.md",
       "installedAt": 1777475436464,
       "enabled": true
     }
@@ -46,7 +46,7 @@
       {
         "id": "skill-note-zerog-recipes",
         "text": "zerog-integration-agent has installed zerog-recipes@0.1.0: Verified-working 0G Storage and 0G Compute snippets. Use when implementing any 0G SDK call. Triggers on \"0g storage how\", \"0g compute how\", \"verifiable inference snippet\", \"kv read\", \"kv write\", \"encrypted upload\".",
-        "source": "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/zerog-recipes/SKILL.md",
+        "source": "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/zerog-recipes/SKILL.md",
         "confidence": 0.9,
         "updatedAt": 1777475436464
       }
@@ -58,7 +58,7 @@
         "fix": "Apply zerog-recipes@0.1.0 instructions and record command outcomes as episodic memory.",
         "protocol": "0G",
         "evidence": [
-          "/Users/ahoura/Documents/dev-projects/focus-swarm/.claude/skills/zerog-recipes/SKILL.md"
+          "/Users/ahoura/Documents/dev-projects/cortex/.claude/skills/zerog-recipes/SKILL.md"
         ],
         "successCount": 0,
         "failureCount": 0,

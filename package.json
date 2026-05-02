@@ -1,18 +1,18 @@
 {
-  "name": "focus-swarm",
+  "name": "cortex",
   "private": true,
   "version": "0.0.1",
   "description": "Synthetic focus-group agents on 0G + AXL + ENS",
   "scripts": {
-    "smoke:storage": "pnpm -F @focus-swarm/core smoke:storage",
-    "smoke:compute": "pnpm -F @focus-swarm/core smoke:compute",
-    "deploy:contracts": "pnpm --filter @focus-swarm/contracts deploy:testnet",
+    "smoke:storage": "pnpm -F @cortex/core smoke:storage",
+    "smoke:compute": "pnpm -F @cortex/core smoke:compute",
+    "deploy:contracts": "pnpm --filter @cortex/contracts deploy:testnet",
     "spawn:axl": "bash infra/axl/spawn.sh",
-    "session:run": "pnpm -F @focus-swarm/moderator start",
-    "protocol-twins": "pnpm -F @focus-swarm/kit protocol-twins",
-    "agents:build": "pnpm -F @focus-swarm/kit build-agents",
+    "session:run": "pnpm -F @cortex/moderator start",
+    "protocol-twins": "pnpm -F @cortex/kit protocol-twins",
+    "agents:build": "pnpm -F @cortex/kit build-agents",
     "e2e:kit": "bash e2e-kit/quickstart.sh",
-    "ui": "pnpm -F @focus-swarm/ui dev"
+    "ui": "pnpm -F @cortex/ui dev"
   },
   "devDependencies": {
     "typescript": "^5.6.0",
