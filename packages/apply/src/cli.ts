@@ -112,10 +112,10 @@ function formatApplicationLine(app: ApplicationRecord): string {
 
 function printHelp(): void {
   console.log(`Usage:
-  pnpm -F @focus-swarm/apply start create --company=CoW --role="Integration Engineer" --job=job.txt
-  pnpm -F @focus-swarm/apply list
-  pnpm -F @focus-swarm/apply tracker
-  pnpm -F @focus-swarm/apply start show --company=CoW
+  pnpm -F @cortex/apply start create --company=CoW --role="Integration Engineer" --job=job.txt
+  pnpm -F @cortex/apply list
+  pnpm -F @cortex/apply tracker
+  pnpm -F @cortex/apply start show --company=CoW
 
 Create options:
   --file=job.json          JSON with company, role, description, and optional metadata
