@@ -1,168 +1,103 @@
-# cortex
+# Cortex
 
-## Pivot: Persistent Agent Kit
+**Persistent, decentralized AI agents** — encrypted brains on 0G Storage, ENS identity, AXL mesh routing.
 
-This repo now includes **Persistent Agent Kit** (`packages/kit`): a framework for building durable AI agents with installable skills, persistent memory, ENS identity, AXL peer-to-peer collaboration, and verified 0G Compute reasoning.
+Agents are defined by a `CortexManifest`, stored as encrypted JSON on 0G, discovered via ENS text records, and communicate peer-to-peer over AXL. No central broker. No OpenAI/Anthropic at runtime.
 
-The flagship example is **Protocol Twins**: three specialist agents for 0G, AXL, and ENS that help builders integrate those protocols together. Run the judge-facing dry demo with:
+## Quick start (5 commands)
 
 ```bash
-pnpm e2e:kit
+git clone <this repo> && cd focus-swarm
+cp infra/deploy/env.template .env   # fill in 0G keys + ENS_GATEWAY_SIGNER_KEY
+pnpm install
+ENS_GATEWAY_SIGNER_KEY=0x... pnpm -F @cortex/ens-gateway dev &
+npx tsx demo/01-agent-hello.ts
 ```
-
-The original cortex app remains as an example of agents built on the same protocol primitives.
-
-**Synthetic focus-group agent swarm** on 0G + Gensyn AXL + ENS.
-
-A researcher specifies a target market and a product. The system spawns archetype-driven persona agents — each with a generated life story, values, and verifiable LLM brain. Personas hold a moderated focus-group session over a peer-to-peer mesh. A synthesizer writes a clustering report (themes, pain points, contradictions, opportunity scoring). Personas persist across sessions as iNFTs whose memory grows; researcher cohorts can be rented out.
-
-## What's onchain / verifiable
-- **Persona brain** — JSON spec (life story, values, traumas, media diet, comms style) AES-256 encrypted client-side, uploaded to 0G Storage. Plaintext never leaves the host.
-- **Persona ownership** — minted as ERC-7857 (`MintPersona.sol`). `encryptedURI` = 0G Storage rootHash, `metadataHash` = keccak256 of the spec.
-- **Persona memory** — 0G Storage KV (mood, current opinion vector) + Log-on-KV (utterance history). Streams keyed `persona:<tokenId>:state` and `persona:<tokenId>:log`.
-- **Inference** — every reply runs through 0G Compute (`broker.inference.processResponse()` — TeeML verification). Persona refuses to broadcast unverified replies.
-- **Inter-persona dialogue** — every persona is its own AXL node (own ed25519 identity, own ports). Moderator and personas communicate by `POST /send` + `GET /recv` over the encrypted Yggdrasil mesh. **No central message broker.**
-- **Identity** — every persona resolves at `<archetype>.cohort-<n>.cortex.eth` with text records: `agent.inft`, `agent.axl_peer`, `agent.archetype`, `agent.resume`, `agent.last_session`. Self-hosted CCIP-read offchain resolver (free, ENSv2-ready).
 
 ## Architecture
 
 ```
-[UI / Next.js] ──POST /api/sessions──▶ [Orchestrator]
-                                            │
-              ┌─────────────────────────────┴─────────────────────────────┐
-              ▼                                                            ▼
-   [Smith × N personas]                                           [bash spawn.sh N]
-   chat (TeeML) → encrypt → upload → mint → ENS register     boot N+1 AXL nodes
-              │                                                            │
-              └────────────────────────┐                                   │
-                                       ▼                                   ▼
-                          [Persona runtime × N]                  [Moderator runtime]
-                          subscribe /recv on own AXL node        /send turn msgs
-                          on turn: read 0G KV, RAG 0G Log,        round-robin speaker
-                          chat (TeeML), append Log, broadcast     collect transcript
-                          utterance to all peer nodes
-                                       │
-                                       ▼
-                          [Synthesizer] reads transcript, runs verified clustering,
-                          uploads report to 0G Storage, returns full result to UI
+ENS name (alice.cortex.eth)
+    │  agent.resume = 0g://<rootHash>
+    │  agent.axl_peer = <ed25519 pubkey>
+    ▼
+CCIP-read gateway (ens-gateway)     ← EIP-3668 signed responses
+    │
+    ▼
+0G Storage                          ← AES-256 encrypted brain JSON
+    │  uploadEncrypted / downloadDecrypted
+    ▼
+AXL mesh node                       ← per-agent ed25519 identity + Yggdrasil
+    │  POST /send  GET /recv
+    ▼
+0G Compute (TeeML)                  ← verifiedReason(), processResponse() on every reply
+    │
+    ▼
+0G KV + Log                         ← agent.remember() / agent.recall() / appendEpisode()
 ```
 
-## Tracks targeted
+## Track table
 
-### 🤖 0G Autonomous Agents, Swarms & iNFT Innovations
-- **Multi-agent swarm** — moderator + N personas + harness, each with its own runtime, inference, memory.
-- **iNFT (ERC-7857)** — `packages/contracts/contracts/MintPersona.sol`. Mint-only path; transfer-time TEE re-encryption oracle out of scope for hackathon.
-- **Persistent verifiable memory** — `packages/core/src/storage.ts` exposes `kvSet/kvGet/logAppend/logRead` over 0G Storage with auto-derived stream IDs.
-- **TeeML inference** — `packages/core/src/compute.ts` calls `processResponse()` after every chat — `chat()` throws if verification fails or returns `verified: false`.
+| Feature | Track | File |
+|---|---|---|
+| `Agent.create/load/save` — encrypted brain on 0G | 0G Framework | `packages/kit/src/Agent.ts` |
+| `verifiedReason()` — TeeML on every reply | 0G Framework | `packages/kit/src/inference/zerog.ts` |
+| `uploadEncrypted/downloadDecrypted` | 0G Agents | `packages/core/src/storage.ts` |
+| `kvSet/kvGet/logAppend` — persistent memory | 0G Agents | `packages/core/src/storage.ts` |
+| `pumpRecv` + `SwarmMsg` — A2A dialogue | AXL | `packages/core/src/axl.ts` |
+| `registerSkillAsMcpTool` — skills on AXL router | AXL | `packages/kit/src/transport/mcp.ts` |
+| `registerAgentEns/resolveAgentEns` — ENS identity | ENS | `packages/kit/src/identity/ens.ts` |
+| CCIP-read EIP-3668 signed gateway | ENS | `packages/ens-gateway/src/server.ts` |
+| Protocol twins — persistent AXL-native agents | AXL + Agents | `packages/protocol-twins/src/runtime.ts` |
+| Apply twin — MCP tools on AXL router_port | AXL + Framework | `packages/apply/src/runtime.ts` |
 
-### 🛰️ Gensyn AXL — Peer-to-peer
-- **Distinct AXL nodes** — `infra/axl/spawn.sh` boots 1 moderator + N persona nodes, each with its own ed25519 identity, distinct host ports (`api 9002+i*10`, `tls 9101+i*10`, `mcp 9003+i*10`, `a2a 9004+i*10`).
-- **Real cross-node traffic** — `packages/core/src/axl.ts` (`AxlClient`, `pumpRecv`, `SwarmMsg` envelope). Personas send/receive via `POST /send` + `GET /recv`; no central broker, no Redis, no NATS.
-- **Track requirement satisfied** — communication crosses separate AXL processes, not just in-process. `peers.local.json` proves N+1 distinct pubkeys.
+## Demos (judge-facing)
 
-### 🪪 ENS for AI Agents
-- **Subname-per-persona** — `<archetype>.cohort-<n>.cortex.eth`.
-- **Real records** — iNFT pointer, AXL peer ID, archetype, encrypted-resume URI, last-session report URI.
-- **Self-hosted CCIP-read gateway** — `packages/ens-gateway/`. Express + SQLite. Parent's L1 resolver delegates here via EIP-3668 wildcard; subnames are free DB writes.
-- **Resolves via stock viem** — `client.getEnsText({ name, key: 'agent.inft' })` works without library mods.
-
-> Note: full EIP-3668 signed callback (`/ccip/:sender/:data`) is stubbed; the data-layer and resolution flow are functional via the `/lookup` HTTP path. Wiring the ECDSA-signed offchain response is the last polish item.
-
-## Quick start
-
-### Prereqs
-- Node 22, pnpm 9, Go 1.22+, openssl, sqlite3, jq
-- A wallet funded via https://faucet.0g.ai (chain 16602)
-
-### 1. Build & install
 ```bash
-pnpm install
-# Build the AXL binary from the docs repo
-(cd ../0g-doc/axl && make build && cp ./node ../../cortex/infra/axl/bin/node)
-# Compile contracts
-pnpm -F @cortex/contracts compile
+npx tsx demo/01-agent-hello.ts    # Agent create/ask/remember/save/load  (0G Framework)
+npx tsx demo/02-twins-chat.ts     # Two twins query/answer via AXL        (AXL + Agents)
+npx tsx demo/03-ens-resolve.ts    # ENS register + resolve + CCIP         (ENS)
+npx tsx demo/04-focus-session.ts  # Full 3-persona focus group            (Agents)
 ```
 
-### 2. Configure
-```bash
-cp .env.example .env
-# put your funded testnet PRIVATE_KEY into .env (NOT .env.example)
-```
+## Packages
 
-### 3. Smoke 0G stack
-```bash
-pnpm smoke:storage        # encrypted upload + KV r/w + Log roundtrip
-pnpm smoke:compute        # Qwen 2.5 7B + TeeML processResponse() must return true
-```
-
-### 4. Deploy iNFT contract
-```bash
-pnpm deploy:contracts
-# writes infra/deploy/addresses.json
-```
-
-### 5. Run ENS gateway (separate terminal)
-```bash
-pnpm -F @cortex/ens-gateway dev
-```
-
-### 6. Run a session
-**Headless (CLI):**
-```bash
-TARGET_MARKET="Gen-Z renters in Berlin who use BeReal" \
-PRODUCT_BRIEF="A subscription habit tracker that auto-snaps your habits" \
-ARCHETYPES="genz-renter-berlin,solo-founder-mumbai,boomer-dad-houston" \
-pnpm -F @cortex/orchestrator run
-```
-
-**Via UI:**
-```bash
-pnpm ui          # http://localhost:3000
-```
-
-Output of either run: persona iNFT tokenIds + ENS names + transcript JSON + report JSON, with rootHashes for the on-storage versions.
-
-## Skills (`.claude/skills/`)
-Each skill teaches Claude how to do one operation end-to-end:
-- `spawn-axl-cohort` — boot N AXL nodes
-- `mint-persona` — encrypt → upload → mint → ENS register
-- `run-focus-session` — full session orchestration
-- `zerog-recipes` — copy-paste 0G storage/compute snippets
-- `ens-subname-issue` — gateway POST + viem resolve
-
-## Layout
 ```
 packages/
-  contracts/      Hardhat — MintPersona.sol (ERC-7857 mint-only)
-  core/           0G SDK wrappers (storage, compute, identity) + AXL client
-  ens-gateway/    CCIP-read offchain resolver gateway (Express + SQLite)
-  smith/          Persona generator + iNFT mint pipeline
-  persona/        Persona runtime (one process per AXL node)
-  moderator/      Turn-taking + transcript collection
-  harness/        Pushes product observations into the swarm
-  synthesizer/    Verified clustering + report
-  orchestrator/   Full session lifecycle (used by UI + CLI)
+  core/           0G SDK wrappers — storage, compute, AXL client, SwarmMsg
+  kit/            Agent SDK — Agent class, skills, memory, ENS, MCP transport
+  ens-gateway/    CCIP-read offchain resolver (Express + SQLite, EIP-3668 signed)
+  protocol-twins/ Persistent twin runtime — 0G, AXL, ENS specialist agents
+  apply/          Apply twin — cover letters, company research, pipeline tracker
+  moderator/      Focus group turn-taking driver over AXL A2A
+  smith/          Persona generator → mint iNFT → register ENS
+  persona/        Persona runtime — AXL node + 0G memory + Compute inference
+  synthesizer/    Post-session clustering + report writer
+  contracts/      Hardhat — mint-only ERC-7857 fork (MintPersona.sol)
   ui/             Next.js researcher dashboard
-infra/
-  axl/            AXL binary, per-node configs, ed25519 keys, spawn.sh, peers.local.json
-  deploy/         Contract addresses, ENS gateway DB, session reports
-.claude/
-  settings.local.json
-  skills/         Repo-local Claude skills
-CLAUDE.md         Project invariants (no central broker, all inference via 0G Compute, etc)
 ```
 
-## Submission metadata
-- **Project name** — cortex
-- **Network** — 0G testnet Galileo (chain 16602)
-- **Contract** — see `infra/deploy/addresses.json` after deploy
-- **iNFT explorer** — `https://chainscan-galileo.0g.ai/address/<MintPersona>`
-- **Demo** — see `packages/ui/` and CLI commands above
-
 ## Hard invariants
-1. No central message broker between agents — AXL only.
-2. All inference via 0G Compute, TeeML-verified. No OpenAI/Anthropic fallback.
-3. Persona brains always encrypted before upload.
-4. Testnet only.
 
-These are enforced in `CLAUDE.md`, in code (chat throws on `!verified`, persona drops unverified replies), and in `.claude/settings.local.json` (denies `* mainnet *` patterns).
+1. **No central message broker.** All inter-agent chat goes through AXL A2A. (`packages/core/src/axl.ts`)
+2. **All inference via 0G Compute.** No OpenAI / Anthropic fallback. (`packages/kit/src/inference/zerog.ts`)
+3. **Brains encrypted before upload.** AES-256 default. (`packages/core/src/storage.ts:uploadEncrypted`)
+4. **Testnet Galileo only.** Chain ID 16602. Never mainnet.
+5. **No hardcoded contract addresses.** Read from `infra/deploy/addresses.json`.
+
+## Network
+
+- **Chain**: Galileo testnet (Chain ID 16602)
+- **RPC**: `https://evmrpc-testnet.0g.ai`
+- **Storage indexer**: `https://indexer-storage-testnet-turbo.0g.ai`
+- **Faucet**: `https://faucet.0g.ai`
+
+## Using the apply twin from any MCP client
+
+```bash
+AXL_API_URL=http://127.0.0.1:9012 pnpm -F @cortex/apply twin &
+# Add to ~/.cursor/mcp.json or Claude Desktop config:
+# { "mcpServers": { "apply": { "url": "http://127.0.0.1:9013" } } }
+```
+
+Tools available: `apply.draft_cover_letter`, `apply.research_company`, `apply.track_application`, `apply.get_pipeline`, `apply.update_profile`
