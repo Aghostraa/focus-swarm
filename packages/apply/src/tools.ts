@@ -24,8 +24,13 @@ export async function updateProfile(field: keyof ProfileData, value: unknown): P
 }
 
 export async function getPipeline(): Promise<Tracker> {
-  const tracker = await getAgentState<Tracker>(AGENT_NAME, 'pipeline');
-  return tracker ?? { applications: [] };
+  try {
+    const tracker = await getAgentState<Tracker>(AGENT_NAME, 'pipeline');
+    return tracker ?? { applications: [] };
+  } catch (e) {
+    console.warn('[apply-twin] getPipeline failed, returning empty:', (e as Error).message);
+    return { applications: [] };
+  }
 }
 
 export async function trackApplication(params: {
@@ -56,18 +61,31 @@ export async function trackApplication(params: {
   if (existing >= 0) tracker.applications[existing] = record;
   else tracker.applications.push(record);
 
-  await setAgentState(AGENT_NAME, 'pipeline', tracker);
-  await appendIntegrationEvent(AGENT_NAME, {
-    task: 'track_application',
-    outcome: 'success',
-    integration: 'apply',
-    notes: `${params.company}/${params.role} → ${params.status}`,
-  });
+  try {
+    await setAgentState(AGENT_NAME, 'pipeline', tracker);
+  } catch (e) {
+    console.warn('[apply-twin] setAgentState failed, pipeline not persisted:', (e as Error).message);
+  }
+  try {
+    await appendIntegrationEvent(AGENT_NAME, {
+      task: 'track_application',
+      outcome: 'success',
+      integration: 'apply',
+      notes: `${params.company}/${params.role} → ${params.status}`,
+    });
+  } catch (e) {
+    console.warn('[apply-twin] appendIntegrationEvent failed:', (e as Error).message);
+  }
   return record;
 }
 
 export async function researchCompany(params: { company: string }): Promise<string> {
-  const profile = await getProfile();
+  let profile: ProfileData | null = null;
+  try {
+    profile = await getProfile();
+  } catch (e) {
+    console.warn('[apply-twin] getProfile failed, continuing without context:', (e as Error).message);
+  }
 
   const result = await verifiedReason([
     {
@@ -85,12 +103,16 @@ export async function researchCompany(params: { company: string }): Promise<stri
     },
   ]);
 
-  await appendIntegrationEvent(AGENT_NAME, {
-    task: 'research_company',
-    outcome: result.verified ? 'success' : 'unverified',
-    integration: 'apply',
-    notes: `Researched ${params.company}: ${result.text.slice(0, 200)}`,
-  });
+  try {
+    await appendIntegrationEvent(AGENT_NAME, {
+      task: 'research_company',
+      outcome: result.verified ? 'success' : 'unverified',
+      integration: 'apply',
+      notes: `Researched ${params.company}: ${result.text.slice(0, 200)}`,
+    });
+  } catch (e) {
+    console.warn('[apply-twin] appendIntegrationEvent failed:', (e as Error).message);
+  }
 
   return result.text;
 }
@@ -100,8 +122,15 @@ export async function draftCoverLetter(params: {
   role: string;
   jd: string;
 }): Promise<string> {
-  const profile = await getProfile();
+  console.error('[draft] start', params.company, params.role);
+  let profile: ProfileData | null = null;
+  try {
+    profile = await getProfile();
+  } catch (e) {
+    console.warn('[apply-twin] getProfile failed, continuing without context:', (e as Error).message);
+  }
 
+  console.error('[draft] calling verifiedReason');
   const result = await verifiedReason([
     {
       role: 'system',
@@ -122,13 +151,19 @@ export async function draftCoverLetter(params: {
       ].filter(Boolean).join('\n'),
     },
   ]);
+  console.error('[draft] got result, verified=', result.verified);
 
-  await appendIntegrationEvent(AGENT_NAME, {
-    task: 'draft_cover_letter',
-    outcome: result.verified ? 'success' : 'unverified',
-    integration: 'apply',
-    notes: `Drafted letter for ${params.company}/${params.role}`,
-  });
+  try {
+    await appendIntegrationEvent(AGENT_NAME, {
+      task: 'draft_cover_letter',
+      outcome: result.verified ? 'success' : 'unverified',
+      integration: 'apply',
+      notes: `Drafted letter for ${params.company}/${params.role}`,
+    });
+  } catch (e) {
+    console.warn('[apply-twin] appendIntegrationEvent failed:', (e as Error).message);
+  }
 
+  console.error('[draft] returning text, length=', result.text.length);
   return result.text;
 }

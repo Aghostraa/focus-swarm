@@ -107,7 +107,12 @@ function startMcpServer(): void {
     }
 
     let body = '';
-    for await (const chunk of req) body += chunk;
+    await new Promise<void>((resolve, reject) => {
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => resolve());
+      req.on('error', reject);
+      setTimeout(() => reject(new Error('request timeout')), 5000);
+    });
 
     let rpc: any;
     try { rpc = JSON.parse(body); } catch {
@@ -115,11 +120,15 @@ function startMcpServer(): void {
     }
 
     const respond = (result: unknown, error?: unknown) => {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(error
+      const payload = error
         ? { jsonrpc: '2.0', id: rpc.id, error: { code: -32000, message: String(error) } }
-        : { jsonrpc: '2.0', id: rpc.id, result },
-      ));
+        : { jsonrpc: '2.0', id: rpc.id, result };
+      const body = JSON.stringify(payload);
+      console.error('[respond] writing response, size=', body.length);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(body, () => {
+        console.error('[respond] response sent');
+      });
     };
 
     try {
@@ -138,8 +147,8 @@ function startMcpServer(): void {
   });
 
   server.listen(MCP_PORT, () => {
-    console.log(`[apply-twin] MCP server :${MCP_PORT}`);
-    console.log(`[apply-twin] Add to MCP config: { "apply": { "url": "http://127.0.0.1:${MCP_PORT}" } }`);
+    console.error(`[apply-twin] MCP server :${MCP_PORT}`);
+    console.error(`[apply-twin] Configured in .claude/settings.json`);
   });
 }
 
@@ -154,8 +163,8 @@ async function main() {
     await registerAgentEns({
       ensName: ENS_NAME,
       texts: agentEnsTextRecords({ protocol: 'apply', axlPeerId: peerId }),
-    }).catch((e) => console.warn('[apply-twin] ENS register failed:', e.message));
-    console.log(`[apply-twin] ENS: ${ENS_NAME} peer=${peerId.slice(0, 12)}...`);
+    }).catch((e) => console.error('[apply-twin] ENS register failed:', e.message));
+    console.error(`[apply-twin] ENS: ${ENS_NAME} peer=${peerId.slice(0, 12)}...`);
   }
 
   // AXL listener — handle query SwarmMsg from other twins.

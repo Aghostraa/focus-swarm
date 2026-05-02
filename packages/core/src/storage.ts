@@ -93,7 +93,7 @@ async function getFlow(): Promise<{ flow: ReturnType<typeof getFlowContract>; no
 /** KV write — version-1 stream. `streamId` must be 32-byte hex (0x-prefixed). */
 export async function kvSet(streamId: StreamId, key: string, value: unknown): Promise<{ txHash: string; rootHash: string }> {
   const { flow, nodes } = await getFlow();
-  const batcher = new Batcher(1, nodes, flow, RPC_URL);
+  const batcher = new Batcher(3, nodes, flow, RPC_URL);
   const keyBytes = new TextEncoder().encode(key);
   const valBytes = new TextEncoder().encode(JSON.stringify(value));
   batcher.streamDataBuilder.addStreamId(streamId);

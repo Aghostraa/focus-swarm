@@ -1,17 +1,8 @@
+import { streamIdFromLabel } from '@cortex/core';
 import type { IntegrationEvent } from './types.js';
 
-function keccakLikeLabel(label: string): string {
-  // Deterministic fallback for dry-run mode. Full mode uses core's streamIdFromLabel.
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < label.length; i++) {
-    hash ^= label.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return `dry-${(hash >>> 0).toString(16).padStart(8, '0')}`;
-}
-
 export function memoryStreamId(agentName: string, kind: 'episodic' | 'state' | 'skills'): string {
-  return keccakLikeLabel(`persistent-agent:${agentName}:${kind}`);
+  return streamIdFromLabel(`persistent-agent:${agentName}:${kind}`);
 }
 
 export async function appendIntegrationEvent(agentName: string, event: Omit<IntegrationEvent, 'id' | 'timestamp'>): Promise<IntegrationEvent> {
