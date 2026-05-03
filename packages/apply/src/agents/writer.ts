@@ -35,7 +35,7 @@ export async function writeDraft(
   ]);
 
   try {
-    const cleaned = result.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
+    const cleaned = result.text.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
     const parsed = JSON.parse(cleaned) as LetterDraft;
     return parsed;
   } catch {

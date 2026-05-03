@@ -69,9 +69,8 @@ export async function trackApplication(params: {
   try {
     await appendIntegrationEvent(AGENT_NAME, {
       task: 'track_application',
-      outcome: 'success',
-      integration: 'apply',
-      notes: `${params.company}/${params.role} → ${params.status}`,
+      outcome: 'worked',
+      error: `${params.company}/${params.role} → ${params.status}`,
     });
   } catch (e) {
     console.warn('[apply-twin] appendIntegrationEvent failed:', (e as Error).message);
@@ -106,9 +105,8 @@ export async function researchCompany(params: { company: string }): Promise<stri
   try {
     await appendIntegrationEvent(AGENT_NAME, {
       task: 'research_company',
-      outcome: result.verified ? 'success' : 'unverified',
-      integration: 'apply',
-      notes: `Researched ${params.company}: ${result.text.slice(0, 200)}`,
+      outcome: result.verified ? 'worked' : 'partial',
+      error: result.verified ? undefined : `Researched ${params.company}: ${result.text.slice(0, 200)}`,
     });
   } catch (e) {
     console.warn('[apply-twin] appendIntegrationEvent failed:', (e as Error).message);
@@ -156,9 +154,8 @@ export async function draftCoverLetter(params: {
   try {
     await appendIntegrationEvent(AGENT_NAME, {
       task: 'draft_cover_letter',
-      outcome: result.verified ? 'success' : 'unverified',
-      integration: 'apply',
-      notes: `Drafted letter for ${params.company}/${params.role}`,
+      outcome: result.verified ? 'worked' : 'partial',
+      error: result.verified ? undefined : `Draft for ${params.company}/${params.role} unverified`,
     });
   } catch (e) {
     console.warn('[apply-twin] appendIntegrationEvent failed:', (e as Error).message);

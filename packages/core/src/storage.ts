@@ -49,7 +49,7 @@ export function kvClient(): KvClient {
 export async function uploadEncrypted(data: Buffer, key: Uint8Array): Promise<UploadResult> {
   if (key.length !== 32) throw new Error('AES-256 key must be 32 bytes');
   const mem = new MemData(data);
-  const [tx, err] = await indexer().upload(mem, RPC_URL, signer(), {
+  const [tx, err] = await indexer().upload(mem, RPC_URL, signer() as any, {
     encryption: { type: 'aes256', key },
   });
   if (err) throw err;
@@ -60,7 +60,7 @@ export async function uploadEncrypted(data: Buffer, key: Uint8Array): Promise<Up
 /** Plaintext upload — only for non-sensitive artifacts (e.g. session reports). */
 export async function uploadPlain(data: Buffer): Promise<UploadResult> {
   const mem = new MemData(data);
-  const [tx, err] = await indexer().upload(mem, RPC_URL, signer());
+  const [tx, err] = await indexer().upload(mem, RPC_URL, signer() as any);
   if (err) throw err;
   if ('rootHashes' in tx) throw new Error('fragmented upload not supported in this path');
   return { rootHash: tx.rootHash, txHash: tx.txHash, txSeq: tx.txSeq };
@@ -86,7 +86,7 @@ async function getFlow(): Promise<{ flow: ReturnType<typeof getFlowContract>; no
   const [nodes, err] = await indexer().selectNodes(1);
   if (err || !nodes || nodes.length === 0) throw err ?? new Error('no storage nodes');
   const status = await nodes[0].getStatus();
-  const flow = getFlowContract(status.networkIdentity.flowAddress, signer());
+  const flow = getFlowContract(status.networkIdentity.flowAddress, signer() as any);
   return { flow, nodes };
 }
 

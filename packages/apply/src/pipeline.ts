@@ -15,7 +15,7 @@ export async function runApplicationPipeline(
   const profile = await loadProfileContext(options.rootDir);
   const analysis = analyzeJob(job, profile);
   const research = await researchJob(job);
-  const draft = await writeDraft(job, profile, analysis, research, options.model, options.useAnthropic);
+  const draft = await writeDraft(job, profile, analysis, research);
   const check = checkDraft(job, draft, analysis);
   const saved = await saveApplication(job, draft, analysis, research, check, options);
 
