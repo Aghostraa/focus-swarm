@@ -57,6 +57,43 @@ type LiveSessionPayload = {
   evolutions: Array<{ ok: boolean; name: string; protocol: string; data?: any; error?: string; ms: number }>;
 };
 
+type FollowupPayload = {
+  checkedAt: string;
+  message: string;
+  projectId?: string;
+  results: Array<{
+    protocol: string;
+    name: string;
+    ok: boolean;
+    data?: {
+      evolved: boolean;
+      skillsUpdated: string[];
+      skillsBefore: Array<{ name: string; hash: string | null }>;
+      skillsAfter: Array<{ name: string; hash: string | null }>;
+      reason: string;
+      failureMessage: string;
+      interactionCount: number;
+      lastEvolved: number | null;
+    };
+    error?: string;
+    ms: number;
+  }>;
+};
+
+type PlanPayload = {
+  checkedAt: string;
+  description: string;
+  twinPlans: Array<{
+    protocol: string;
+    name: string;
+    ensName: string;
+    steps: string;
+    verified: boolean;
+    ms: number;
+    ok: boolean;
+  }>;
+};
+
 const liveQuestion = 'Show how a Cortex protocol buddy discovers peers, verifies inference, and updates memory after a failed integration.';
 const projectDescription = 'Build a protocol buddy that stores its brain on 0G, verifies every answer with TeeML, discovers peers via ENS text records, and coordinates integration plans over AXL.';
 const ogExplorer = 'https://explorer.0g.ai/testnet/home';
@@ -78,9 +115,14 @@ export default function ProtocolTwinsPage() {
   const [idea, setIdea] = useState(projectDescription);
   const [liveProjectId, setLiveProjectId] = useState<string | null>(null);
   const [liveSession, setLiveSession] = useState<LiveSessionPayload | null>(null);
+  const [plan, setPlan] = useState<PlanPayload | null>(null);
+  const [followup, setFollowup] = useState<FollowupPayload | null>(null);
+  const [followupMessage, setFollowupMessage] = useState('');
   const [loadingStatus, setLoadingStatus] = useState(false);
   const [loadingAsk, setLoadingAsk] = useState(false);
   const [loadingProject, setLoadingProject] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState(false);
+  const [loadingFollowup, setLoadingFollowup] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function refreshStatus() {
@@ -141,6 +183,48 @@ export default function ProtocolTwinsPage() {
       setError((e as Error).message);
     } finally {
       setLoadingProject(false);
+    }
+  }
+
+  async function sendFollowup() {
+    if (!followupMessage.trim()) return;
+    setLoadingFollowup(true);
+    setFollowup(null);
+    setError(null);
+    try {
+      const res = await fetch('/api/cortex-demo/followup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: followupMessage, projectId: liveProjectId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      setFollowup(data);
+      await refreshLiveSession();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoadingFollowup(false);
+    }
+  }
+
+  async function generatePlan() {
+    setLoadingPlan(true);
+    setPlan(null);
+    setError(null);
+    try {
+      const res = await fetch('/api/cortex-demo/plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: idea }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      setPlan(data);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoadingPlan(false);
     }
   }
 
@@ -289,6 +373,45 @@ export default function ProtocolTwinsPage() {
           <ProjectView project={project} liveSession={liveSession} />
         ) : (
           <div style={emptyWide}>Start a live discussion to watch AXL peer exchanges and evolution counters update.</div>
+        )}
+        {project && (
+          <div style={{ marginTop: 18 }}>
+            <div style={sectionDivider} />
+            <div style={{ marginTop: 18 }}>
+              <h3 style={h3}>Send follow-up</h3>
+              <p style={subtleSmall}>Tell the nodes what went wrong. Each twin logs the failure, detects gaps, and evolves its skill — without resetting the session. Brain update persisted to 0G.</p>
+              <textarea
+                value={followupMessage}
+                onChange={(e) => setFollowupMessage(e.target.value)}
+                rows={3}
+                style={{ ...ideaInput, marginTop: 10 }}
+                placeholder="Describe what failed, e.g. "0G KV write failed with 503 — retry logic missing""
+              />
+              <button onClick={sendFollowup} disabled={loadingFollowup || !followupMessage.trim()} style={primaryButton}>
+                {loadingFollowup ? 'Evolving…' : 'Send follow-up / trigger evolve'}
+              </button>
+              {loadingFollowup && (
+                <div style={{ ...emptyWide, color: '#71d6a2', marginTop: 10 }}>Each twin reading failure log, detecting gaps, regenerating skills via 0G Compute…</div>
+              )}
+              {followup && <EvolutionView followup={followup} />}
+            </div>
+            <div style={sectionDivider} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 18 }}>
+              <div>
+                <h2 style={h2}>Implementation Plan</h2>
+                <p style={subtleSmall}>Each twin generates protocol-specific steps using 0G Compute with TeeML verification.</p>
+              </div>
+              <button onClick={generatePlan} disabled={loadingPlan} style={{ ...primaryButton, marginLeft: 'auto', whiteSpace: 'nowrap' }}>
+                {loadingPlan ? 'Generating plan…' : 'Generate implementation plan'}
+              </button>
+            </div>
+            {plan ? <PlanView plan={plan} /> : !loadingPlan && (
+              <div style={emptyWide}>Click "Generate implementation plan" to synthesize protocol-specific steps from all 3 twins.</div>
+            )}
+            {loadingPlan && (
+              <div style={{ ...emptyWide, color: '#71d6a2' }}>Querying all 3 twins via 0G Compute — may take 30–90s…</div>
+            )}
+          </div>
         )}
       </section>
 
@@ -459,6 +582,95 @@ function ProjectView({ project, liveSession }: { project: ProjectPayload; liveSe
   );
 }
 
+function EvolutionView({ followup }: { followup: FollowupPayload }) {
+  const protocolColors: Record<string, string> = { '0G': '#71d6a2', AXL: '#7eb8f7', ENS: '#c9a6f5' };
+  return (
+    <div style={{ marginTop: 14 }}>
+      <h3 style={{ ...h3, marginBottom: 10 }}>Evolution results</h3>
+      <div style={planGrid}>
+        {followup.results.map((r) => {
+          const d = r.data;
+          const evolved = d?.evolved ?? false;
+          const updatedSkills = d?.skillsUpdated ?? [];
+          const skillsBefore = d?.skillsBefore ?? [];
+          const skillsAfter = d?.skillsAfter ?? [];
+          const hasHashChange = skillsBefore.some((b, i) => b.hash !== skillsAfter[i]?.hash);
+          return (
+            <div key={r.name} style={{ ...planCard, borderColor: evolved ? '#2f8f6b' : '#282e3a' }}>
+              <div style={cardTopline}>
+                <div>
+                  <h3 style={h3}>{r.name}</h3>
+                  <div style={{ ...metaLine, color: protocolColors[r.protocol] ?? '#71d6a2' }}>{r.protocol}</div>
+                </div>
+                <StatusPill ok={evolved} label={evolved ? 'evolved' : r.ok ? 'no change' : 'offline'} />
+              </div>
+              <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
+                <div style={metaLine}>reason: {d?.reason ?? r.error ?? 'unknown'}</div>
+                {updatedSkills.length > 0 && (
+                  <div style={{ ...metaLine, color: '#71d6a2' }}>updated: {updatedSkills.join(', ')}</div>
+                )}
+                {skillsBefore.length > 0 && (
+                  <div style={evolveTable}>
+                    <div style={evolveHeader}>
+                      <span>skill</span><span>before</span><span>after</span>
+                    </div>
+                    {skillsBefore.map((b, i) => {
+                      const a = skillsAfter[i];
+                      const changed = b.hash !== a?.hash;
+                      return (
+                        <div key={b.name} style={{ ...evolveRow, color: changed ? '#71d6a2' : '#9da1ad' }}>
+                          <span>{b.name}</span>
+                          <code style={code}>{b.hash ? b.hash.slice(0, 10) : 'none'}</code>
+                          <code style={{ ...code, color: changed ? '#71d6a2' : undefined }}>{a?.hash ? a.hash.slice(0, 10) : 'none'}</code>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {d?.lastEvolved && (
+                  <div style={metaLine}>last evolved: {new Date(d.lastEvolved).toLocaleTimeString()} · {d.interactionCount} interactions</div>
+                )}
+                {hasHashChange && (
+                  <div style={{ ...metaLine, color: '#71d6a2', fontWeight: 700 }}>brain hash changed → persisted to 0G</div>
+                )}
+              </div>
+              <div style={{ ...metaLine, marginTop: 8 }}>{r.ms}ms</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PlanView({ plan }: { plan: PlanPayload }) {
+  const protocolColors: Record<string, string> = { '0G': '#71d6a2', AXL: '#7eb8f7', ENS: '#c9a6f5' };
+  return (
+    <div style={planGrid}>
+      {plan.twinPlans.map((tp) => (
+        <div key={tp.name} style={planCard}>
+          <div style={cardTopline}>
+            <div>
+              <h3 style={h3}>{tp.name}</h3>
+              <div style={{ ...metaLine, color: protocolColors[tp.protocol] ?? '#71d6a2' }}>{tp.protocol} track</div>
+            </div>
+            <StatusPill ok={tp.verified} label={tp.verified ? 'TeeML verified' : tp.ok ? 'unverified' : 'offline'} />
+          </div>
+          <div style={planSteps}>
+            {tp.steps.split(/\n/).filter((l) => l.trim()).map((line, i) => {
+              const isStep = /^(\d+[\.\):]|[-•*])/.test(line.trim());
+              return (
+                <p key={i} style={isStep ? planStep : planBody}>{line}</p>
+              );
+            })}
+          </div>
+          <div style={metaLine}>{tp.ms}ms · {tp.ensName}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ArtifactSummary({ status }: { status: StatusPayload | null }) {
   const focusReport = status?.artifacts.latestFocusReport as any;
   const protocolDemo = status?.artifacts.protocolDemo as any;
@@ -612,3 +824,12 @@ const mintList: React.CSSProperties = { display: 'grid', gap: 8, marginTop: 10 }
 const mintLink: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr minmax(140px, 220px)', gap: 10, alignItems: 'center', color: '#dfe3ed', textDecoration: 'none', fontSize: 13 };
 const inlineLink: React.CSSProperties = { color: '#71d6a2', textDecoration: 'none', fontSize: 13, fontWeight: 700 };
 const errorBox: React.CSSProperties = { background: '#351820', border: '1px solid #7a2b35', color: '#ffd4d8', borderRadius: 8, padding: 12, marginBottom: 14 };
+const sectionDivider: React.CSSProperties = { borderTop: '1px solid #282e3a' };
+const planGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, marginTop: 14 };
+const planCard: React.CSSProperties = { background: '#10131a', border: '1px solid #282e3a', borderRadius: 8, padding: 14, minWidth: 0 };
+const planSteps: React.CSSProperties = { margin: '12px 0 10px', display: 'grid', gap: 4 };
+const planStep: React.CSSProperties = { color: '#dfe3ed', fontSize: 13, lineHeight: 1.55, margin: 0, paddingLeft: 4 };
+const planBody: React.CSSProperties = { color: '#9da1ad', fontSize: 12, lineHeight: 1.5, margin: 0, paddingLeft: 4 };
+const evolveTable: React.CSSProperties = { background: '#0b0d12', borderRadius: 6, padding: 8, marginTop: 6 };
+const evolveHeader: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 80px 80px', gap: 8, fontSize: 10, color: '#858b99', marginBottom: 4, textTransform: 'uppercase' };
+const evolveRow: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 80px 80px', gap: 8, fontSize: 11, alignItems: 'center', padding: '2px 0' };

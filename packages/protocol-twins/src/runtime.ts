@@ -407,10 +407,98 @@ export async function runTwin(config: TwinConfig): Promise<void> {
       return;
     }
 
-    // POST /evolve — trigger skill evolution
+    // POST /evolve — trigger skill evolution from failure report
     if (pathname === '/evolve' && req.method === 'POST') {
+      let body = '';
+      await new Promise<void>((resolve, reject) => {
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => resolve());
+        req.on('error', reject);
+        setTimeout(() => reject(new Error('request timeout')), 5000);
+      });
+
+      let request: any = {};
+      try { request = JSON.parse(body); } catch { /* treat as empty */ }
+
+      const failureMessage: string = typeof request.failureMessage === 'string' ? request.failureMessage.trim() : '';
+      const projectId: string | undefined = typeof request.projectId === 'string' ? request.projectId : undefined;
+
+      // Append failure event to episodic log so evolveSkills() can see it
+      if (failureMessage) {
+        await appendIntegrationEvent(config.name, {
+          task: 'followup_failure',
+          outcome: 'failed',
+          protocol: config.protocol ?? 'unknown',
+          error: `Q: ${failureMessage} | followup from researcher`,
+        }).catch(() => {});
+
+        // Also inject into the active session transcript for display
+        if (projectId) {
+          const session = sessions.get(projectId);
+          if (session) {
+            session.peerExchanges.push({
+              from: 'researcher',
+              to: config.name,
+              question: failureMessage,
+              answer: '[evolution triggered — processing gaps…]',
+              verified: false,
+              skill: 'followup',
+            });
+          }
+        }
+      }
+
+      // Snapshot skills before evolution for diff
+      const skillsBefore = agentSkills.map((s) => ({ name: s.name, hash: s.hash ?? null }));
+
+      isEvolving = true;
+      let evolutionResult: any = { evolved: false, skillsUpdated: [], reason: 'no gaps' };
+      try {
+        const { evolveSkills } = await import('./evolve.js');
+        evolutionResult = await evolveSkills(config.name, agentSkills, skillDir, {
+          focus: failureMessage || undefined,
+        });
+      } catch (e) {
+        evolutionResult = { evolved: false, skillsUpdated: [], reason: (e as Error).message };
+      }
+      isEvolving = false;
+      lastEvolved = Date.now();
+
+      // Reload skills after evolution
+      let skillsAfter: any[] = skillsBefore;
+      try {
+        const { loadSkillDirectory } = await import('@cortex/kit');
+        const reloaded = await loadSkillDirectory(skillDir);
+        agentSkills = reloaded.filter((s: any) => config.skills?.includes(s.name));
+        skillsAfter = agentSkills.map((s) => ({ name: s.name, hash: s.hash ?? null }));
+      } catch { /* keep old skills */ }
+
+      // Update session transcript with outcome
+      if (projectId) {
+        const session = sessions.get(projectId);
+        if (session) {
+          const lastEntry = session.peerExchanges[session.peerExchanges.length - 1];
+          if (lastEntry?.answer?.startsWith('[evolution triggered')) {
+            lastEntry.answer = evolutionResult.evolved
+              ? `[evolved] Updated: ${evolutionResult.skillsUpdated.join(', ')} — ${evolutionResult.reason}`
+              : `[no change] ${evolutionResult.reason}`;
+            lastEntry.verified = evolutionResult.evolved;
+            lastEntry.skill = 'evolve';
+          }
+        }
+      }
+
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ started: true }));
+      res.end(JSON.stringify({
+        agent: config.name,
+        protocol: config.protocol,
+        failureMessage,
+        ...evolutionResult,
+        skillsBefore,
+        skillsAfter,
+        interactionCount,
+        lastEvolved,
+      }));
       return;
     }
 

@@ -192,6 +192,68 @@ app.get('/session/:projectId', async (req, res) => {
   res.json({ checkedAt: new Date().toISOString(), projectId, sessions, evolutions });
 });
 
+app.post('/followup', async (req, res) => {
+  const message =
+    typeof req.body?.message === 'string' && req.body.message.trim()
+      ? req.body.message.trim()
+      : '';
+  const projectId = typeof req.body?.projectId === 'string' ? req.body.projectId : undefined;
+
+  if (!message) {
+    res.status(400).json({ error: 'missing message' });
+    return;
+  }
+
+  const results = await Promise.all(
+    TWINS.map((twin) =>
+      postJson(
+        `${twin.httpUrl}/evolve`,
+        { failureMessage: message, projectId },
+        120000,
+      ).then((result) => ({
+        protocol: twin.protocol,
+        name: twin.name,
+        ok: result.ok,
+        data: result.data,
+        error: result.error,
+        ms: result.ms,
+      })),
+    ),
+  );
+
+  res.json({ checkedAt: new Date().toISOString(), message, projectId, results });
+});
+
+app.post('/plan', async (req, res) => {
+  const description =
+    typeof req.body?.description === 'string' && req.body.description.trim()
+      ? req.body.description.trim()
+      : 'Build a Cortex protocol buddy that stores brain state on 0G, discovers peers through ENS, and coordinates integration plans over AXL.';
+
+  const twinPlans = await Promise.all(
+    TWINS.map((twin) =>
+      postJson(
+        `${twin.httpUrl}/ask`,
+        {
+          message: `You are a ${twin.protocol} protocol expert building a Cortex protocol buddy. Project: "${description}"\n\nProvide a concrete 4-step implementation plan that specifically uses ${twin.protocol}. Each step: title, what to build, and the exact SDK call or method to use. Be specific and actionable.`,
+          context: 'Implementation plan generation. Respond with numbered steps.',
+        },
+        90000,
+      ).then((result) => ({
+        protocol: twin.protocol,
+        name: twin.name,
+        ensName: twin.ensName,
+        steps: result.data?.answer ?? result.error ?? 'No plan generated.',
+        verified: result.data?.verified ?? false,
+        ms: result.ms,
+        ok: result.ok,
+      })),
+    ),
+  );
+
+  res.json({ checkedAt: new Date().toISOString(), description, twinPlans });
+});
+
 const port = Number(process.env.PORT ?? 8080);
 app.listen(port, '0.0.0.0', () => {
   console.log(`[demo-gateway] listening on 0.0.0.0:${port}`);
