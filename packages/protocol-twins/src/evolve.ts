@@ -66,14 +66,24 @@ export async function evolveSkills(
   agentName: string,
   skills: any[],
   skillDir: string,
-  opts?: { focus?: string },
+  opts?: { focus?: string; directGaps?: string[] },
 ): Promise<EvolutionResult> {
-  const events = readEpisodic(agentName);
-  if (!events.length) {
-    return { evolved: false, skillsUpdated: [], reason: 'no episodic log' };
+  // If caller provides gaps directly (e.g. from a followup message), skip log reading
+  let gaps: string[] = opts?.directGaps ?? [];
+
+  if (!gaps.length) {
+    const events = readEpisodic(agentName);
+    if (!events.length && !opts?.focus) {
+      return { evolved: false, skillsUpdated: [], reason: 'no episodic log' };
+    }
+    gaps = events.length ? identifyGaps(events) : [];
   }
 
-  const gaps = identifyGaps(events);
+  // Inject focus failure as a gap if provided and not already covered
+  if (opts?.focus && !gaps.includes(opts.focus)) {
+    gaps = [opts.focus, ...gaps];
+  }
+
   if (!gaps.length) {
     return { evolved: false, skillsUpdated: [], reason: 'no gaps detected' };
   }
@@ -85,7 +95,11 @@ export async function evolveSkills(
   // For each gap, generate an update
   for (const gap of gaps) {
     try {
-      const skillFile = path.join(skillDir, `${skills[0]?.name || 'generic'}.md`);
+      // Pick most relevant skill by keyword overlap, fallback to first
+      const relevantSkill = skills.find((s) =>
+        gap.toLowerCase().split(/\s+/).some((w) => w.length > 3 && s.name?.toLowerCase().includes(w))
+      ) ?? skills[0];
+      const skillFile = path.join(skillDir, `${relevantSkill?.name || 'generic'}.md`);
       const existingContent = fs.existsSync(skillFile)
         ? fs.readFileSync(skillFile, 'utf-8')
         : '[No existing skill]';

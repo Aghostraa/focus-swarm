@@ -457,6 +457,7 @@ export async function runTwin(config: TwinConfig): Promise<void> {
         const { evolveSkills } = await import('./evolve.js');
         evolutionResult = await evolveSkills(config.name, agentSkills, skillDir, {
           focus: failureMessage || undefined,
+          directGaps: failureMessage ? [failureMessage] : undefined,
         });
       } catch (e) {
         evolutionResult = { evolved: false, skillsUpdated: [], reason: (e as Error).message };
