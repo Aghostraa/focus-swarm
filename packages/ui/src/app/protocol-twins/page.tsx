@@ -233,26 +233,26 @@ export default function ProtocolTwinsPage() {
     try {
       const res = await fetch(`/api/cortex-demo/session/${encodeURIComponent(projectId)}`, { cache: 'no-store' });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
-      setLiveSession(data);
-    } catch (e) {
-      setError((e as Error).message);
-    }
+      if (!res.ok) return;
+      // Only update if new data has equal or more exchanges — never wipe existing conversation
+      setLiveSession((prev) => {
+        const prevCount = prev?.sessions?.reduce((n, s) => n + (s.data?.peerExchanges?.length ?? 0), 0) ?? 0;
+        const newCount = data.sessions?.reduce((n: number, s: any) => n + (s.data?.peerExchanges?.length ?? 0), 0) ?? 0;
+        return newCount >= prevCount ? data : prev;
+      });
+    } catch { /* silent — keep existing data on network error */ }
   }
 
   useEffect(() => {
     refreshStatus();
-    const id = window.setInterval(refreshStatus, 7000);
+    const id = window.setInterval(refreshStatus, 15000);
     return () => window.clearInterval(id);
   }, []);
 
   useEffect(() => {
     if (!liveProjectId) return;
     refreshLiveSession(liveProjectId);
-    const id = window.setInterval(() => {
-      refreshLiveSession(liveProjectId);
-      refreshStatus();
-    }, 1800);
+    const id = window.setInterval(() => refreshLiveSession(liveProjectId), 4000);
     return () => window.clearInterval(id);
   }, [liveProjectId]);
 
