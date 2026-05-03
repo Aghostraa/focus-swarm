@@ -68,6 +68,7 @@ type FollowupPayload = {
     data?: {
       evolved: boolean;
       skillsUpdated: string[];
+      newBrainHash?: string;
       skillsBefore: Array<{ name: string; hash: string | null }>;
       skillsAfter: Array<{ name: string; hash: string | null }>;
       reason: string;
@@ -630,7 +631,14 @@ function EvolutionView({ followup }: { followup: FollowupPayload }) {
                 {d?.lastEvolved && (
                   <div style={metaLine}>last evolved: {new Date(d.lastEvolved).toLocaleTimeString()} · {d.interactionCount} interactions</div>
                 )}
-                {hasHashChange && (
+                {d?.newBrainHash ? (
+                  <div style={{ background: '#0b1a12', border: '1px solid #2f8f6b', borderRadius: 6, padding: '8px 10px', marginTop: 6 }}>
+                    <div style={{ color: '#71d6a2', fontSize: 11, fontWeight: 700, marginBottom: 3 }}>brain persisted to 0G Storage</div>
+                    <a href={`https://explorer.0g.ai/testnet/storage/submissions/${d.newBrainHash}`} target="_blank" rel="noreferrer" style={codeLink}>
+                      {d.newBrainHash.slice(0, 22)}…{d.newBrainHash.slice(-10)}
+                    </a>
+                  </div>
+                ) : hasHashChange && (
                   <div style={{ ...metaLine, color: '#71d6a2', fontWeight: 700 }}>brain hash changed → persisted to 0G</div>
                 )}
               </div>

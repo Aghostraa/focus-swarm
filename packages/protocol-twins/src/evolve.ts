@@ -2,6 +2,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as crypto from 'node:crypto';
 import { verifiedReason } from '@cortex/kit';
 
 export interface EvolutionResult {
@@ -142,9 +143,38 @@ Write an updated skill section that addresses this gap. Output ONLY the updated 
     }
   }
 
+  if (!updatedSkills.length) {
+    return { evolved: false, skillsUpdated: [], reason: `evolved from ${gaps.length} gaps but no verified updates` };
+  }
+
+  // Bundle all updated skill files + upload encrypted to 0G Storage
+  let newBrainHash: string | undefined;
+  try {
+    const bundle: Record<string, string> = {};
+    for (const skillFileName of updatedSkills) {
+      const skillFile = path.join(skillDir, skillFileName);
+      if (fs.existsSync(skillFile)) {
+        bundle[skillFileName] = fs.readFileSync(skillFile, 'utf-8');
+      }
+    }
+    bundle['__meta'] = JSON.stringify({ agentName, updatedAt: new Date().toISOString(), gaps });
+
+    const payload = Buffer.from(JSON.stringify(bundle), 'utf-8');
+    // Deterministic AES-256 key derived from agentName — consistent across restarts
+    const encKey = crypto.createHash('sha256').update(`cortex-brain:${agentName}`).digest();
+
+    const { uploadEncrypted } = await import('@cortex/core');
+    const result = await uploadEncrypted(payload, encKey);
+    newBrainHash = result.rootHash;
+    console.log(`[evolve:${agentName}] brain uploaded to 0G: ${newBrainHash}`);
+  } catch (e) {
+    console.warn(`[evolve:${agentName}] 0G upload failed (non-fatal):`, (e as Error).message);
+  }
+
   return {
-    evolved: updatedSkills.length > 0,
+    evolved: true,
     skillsUpdated: updatedSkills,
+    newBrainHash,
     reason: `evolved from ${gaps.length} gaps`,
   };
 }
