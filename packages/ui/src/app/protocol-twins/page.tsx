@@ -643,28 +643,84 @@ function EvolutionView({ followup }: { followup: FollowupPayload }) {
   );
 }
 
+function renderMarkdown(text: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  const lines = text.split('\n');
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    // Fenced code block
+    if (line.trimStart().startsWith('```')) {
+      const lang = line.trim().replace(/^```/, '').trim();
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].trimStart().startsWith('```')) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      nodes.push(
+        <div key={nodes.length} style={mdCodeBlock}>
+          {lang && <div style={mdCodeLang}>{lang}</div>}
+          <pre style={mdPre}><code>{codeLines.join('\n')}</code></pre>
+        </div>
+      );
+      i++; continue;
+    }
+    // Headings
+    const h3m = line.match(/^###\s+(.*)/);
+    if (h3m) { nodes.push(<h4 key={nodes.length} style={mdH3}>{inlineMarkdown(h3m[1])}</h4>); i++; continue; }
+    const h2m = line.match(/^##\s+(.*)/);
+    if (h2m) { nodes.push(<h3 key={nodes.length} style={mdH2}>{inlineMarkdown(h2m[1])}</h3>); i++; continue; }
+    const h1m = line.match(/^#\s+(.*)/);
+    if (h1m) { nodes.push(<h3 key={nodes.length} style={mdH2}>{inlineMarkdown(h1m[1])}</h3>); i++; continue; }
+    // List item
+    const li = line.match(/^[-*]\s+(.*)/);
+    if (li) { nodes.push(<div key={nodes.length} style={mdLi}>· {inlineMarkdown(li[1])}</div>); i++; continue; }
+    const oli = line.match(/^(\d+)[.)]\s+(.*)/);
+    if (oli) { nodes.push(<div key={nodes.length} style={mdOli}><span style={mdOliNum}>{oli[1]}.</span> {inlineMarkdown(oli[2])}</div>); i++; continue; }
+    // Blank line
+    if (!line.trim()) { nodes.push(<div key={nodes.length} style={{ height: 6 }} />); i++; continue; }
+    // Normal paragraph
+    nodes.push(<p key={nodes.length} style={mdPara}>{inlineMarkdown(line)}</p>);
+    i++;
+  }
+  return nodes;
+}
+
+function inlineMarkdown(text: string): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  const re = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    const t = m[0];
+    if (t.startsWith('`')) parts.push(<code key={m.index} style={mdInlineCode}>{t.slice(1, -1)}</code>);
+    else if (t.startsWith('**')) parts.push(<strong key={m.index} style={{ color: '#dfe3ed' }}>{t.slice(2, -2)}</strong>);
+    else parts.push(<em key={m.index}>{t.slice(1, -1)}</em>);
+    last = m.index + t.length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts.length === 1 ? parts[0] : parts;
+}
+
 function PlanView({ plan }: { plan: PlanPayload }) {
   const protocolColors: Record<string, string> = { '0G': '#71d6a2', AXL: '#7eb8f7', ENS: '#c9a6f5' };
   return (
-    <div style={planGrid}>
+    <div style={planStack}>
       {plan.twinPlans.map((tp) => (
         <div key={tp.name} style={planCard}>
-          <div style={cardTopline}>
-            <div>
-              <h3 style={h3}>{tp.name}</h3>
-              <div style={{ ...metaLine, color: protocolColors[tp.protocol] ?? '#71d6a2' }}>{tp.protocol} track</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+              <h3 style={{ ...h3, fontSize: 15 }}>{tp.name}</h3>
+              <span style={{ ...metaLine, color: protocolColors[tp.protocol] ?? '#71d6a2', fontWeight: 700 }}>{tp.protocol} track</span>
             </div>
-            <StatusPill ok={tp.verified} label={tp.verified ? 'TeeML verified' : tp.ok ? 'unverified' : 'offline'} />
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <span style={metaLine}>{tp.ms}ms</span>
+              <StatusPill ok={tp.verified} label={tp.verified ? 'TeeML verified' : tp.ok ? 'unverified' : 'offline'} />
+            </div>
           </div>
-          <div style={planSteps}>
-            {tp.steps.split(/\n/).filter((l) => l.trim()).map((line, i) => {
-              const isStep = /^(\d+[\.\):]|[-•*])/.test(line.trim());
-              return (
-                <p key={i} style={isStep ? planStep : planBody}>{line}</p>
-              );
-            })}
-          </div>
-          <div style={metaLine}>{tp.ms}ms · {tp.ensName}</div>
+          <div>{renderMarkdown(tp.steps)}</div>
         </div>
       ))}
     </div>
@@ -826,10 +882,21 @@ const inlineLink: React.CSSProperties = { color: '#71d6a2', textDecoration: 'non
 const errorBox: React.CSSProperties = { background: '#351820', border: '1px solid #7a2b35', color: '#ffd4d8', borderRadius: 8, padding: 12, marginBottom: 14 };
 const sectionDivider: React.CSSProperties = { borderTop: '1px solid #282e3a' };
 const planGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, marginTop: 14 };
-const planCard: React.CSSProperties = { background: '#10131a', border: '1px solid #282e3a', borderRadius: 8, padding: 14, minWidth: 0 };
+const planStack: React.CSSProperties = { display: 'grid', gap: 14, marginTop: 14 };
+const planCard: React.CSSProperties = { background: '#10131a', border: '1px solid #282e3a', borderRadius: 8, padding: 18, minWidth: 0 };
 const planSteps: React.CSSProperties = { margin: '12px 0 10px', display: 'grid', gap: 4 };
 const planStep: React.CSSProperties = { color: '#dfe3ed', fontSize: 13, lineHeight: 1.55, margin: 0, paddingLeft: 4 };
 const planBody: React.CSSProperties = { color: '#9da1ad', fontSize: 12, lineHeight: 1.5, margin: 0, paddingLeft: 4 };
+const mdH2: React.CSSProperties = { color: '#dfe3ed', fontSize: 15, fontWeight: 700, margin: '14px 0 6px' };
+const mdH3: React.CSSProperties = { color: '#b6b8c5', fontSize: 13, fontWeight: 700, margin: '10px 0 4px' };
+const mdPara: React.CSSProperties = { color: '#9da1ad', fontSize: 13, lineHeight: 1.55, margin: '3px 0' };
+const mdLi: React.CSSProperties = { color: '#b6b8c5', fontSize: 13, lineHeight: 1.55, margin: '2px 0', paddingLeft: 12 };
+const mdOli: React.CSSProperties = { color: '#b6b8c5', fontSize: 13, lineHeight: 1.55, margin: '4px 0', display: 'flex', gap: 8 };
+const mdOliNum: React.CSSProperties = { color: '#71d6a2', fontWeight: 700, minWidth: 18 };
+const mdCodeBlock: React.CSSProperties = { background: '#0b0d12', border: '1px solid #1e2530', borderRadius: 6, margin: '8px 0', overflow: 'hidden' };
+const mdCodeLang: React.CSSProperties = { color: '#71d6a2', fontSize: 10, padding: '4px 10px', borderBottom: '1px solid #1e2530', textTransform: 'uppercase', letterSpacing: 1 };
+const mdPre: React.CSSProperties = { margin: 0, padding: '10px 12px', overflowX: 'auto', fontSize: 12, lineHeight: 1.5, color: '#cfd3df', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' };
+const mdInlineCode: React.CSSProperties = { background: '#1a2030', color: '#71d6a2', borderRadius: 3, padding: '1px 5px', fontSize: '0.9em', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' };
 const evolveTable: React.CSSProperties = { background: '#0b0d12', borderRadius: 6, padding: 8, marginTop: 6 };
 const evolveHeader: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 80px 80px', gap: 8, fontSize: 10, color: '#858b99', marginBottom: 4, textTransform: 'uppercase' };
 const evolveRow: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 80px 80px', gap: 8, fontSize: 11, alignItems: 'center', padding: '2px 0' };
