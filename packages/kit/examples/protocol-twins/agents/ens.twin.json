@@ -11,5 +11,6 @@
     "Parent domain (e.g., cortex.eth) resolver must be set to OffchainResolver contract on L1 — this is an off-chain action not automated.",
     "Local gateway fallback is for testing; production requires fully deployed CCIP-read infrastructure."
   ],
-  "skills": ["ens-subname-issue", "apply-twin-patterns", "mint-persona"]
+  "skills": ["ens-subname-issue", "apply-twin-patterns", "mint-persona"],
+  "peerEnsNames": ["zerog-builder.cortex.eth", "axl-builder.cortex.eth"]
 }

@@ -11,5 +11,6 @@
     "Stream IDs must be exactly 64 hex chars (32 bytes); always use streamIdFromLabel() with padStart(64, '0').",
     "Emphasize local zgs_kv setup for full control; public KV node at 3.101.147.150:6789 is a fallback only."
   ],
-  "skills": ["zerog-recipes", "mint-persona", "apply-twin-patterns"]
+  "skills": ["zerog-recipes", "mint-persona", "apply-twin-patterns"],
+  "peerEnsNames": ["axl-builder.cortex.eth", "ens-builder.cortex.eth"]
 }

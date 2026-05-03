@@ -23,7 +23,7 @@ import {
   selectSkillsForTask,
   buildSkillPrompt,
 } from '@cortex/kit';
-import type { TwinConfig } from './index.js';
+import type { TwinConfig, CapabilityRecord, PeerExchange } from './index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -95,7 +95,85 @@ export async function runTwin(config: TwinConfig): Promise<void> {
   let interactionCount = 0;
   const EVOLUTION_INTERVAL = 10;
 
+  // Session state for project orchestration
+  const sessions = new Map<string, { caps: CapabilityRecord; peerExchanges: PeerExchange[] }>();
+  let isEvolving = false;
+  let lastEvolved: number | null = null;
+
   const onMessage = async (msg: SwarmMsg, fromPeer: string) => {
+    // Handle peer_query — agent-to-agent negotiation during project discovery
+    if (msg.type === 'peer_query') {
+      console.log(`[twin:${config.name}] peer_query from=${fromPeer.slice(0, 12)} question="${msg.question.slice(0, 60)}..."`);
+      try {
+        const selected = selectSkillsForTask(agentSkills, msg.question, 3);
+        const selectedSkill = selected.length ? selected[0].skill.name : '';
+        const skillPrompt = buildSkillPrompt(selected, msg.question);
+
+        const systemPrompt = [
+          config.mission,
+          config.boundaries?.length ? `\nBoundaries:\n${config.boundaries.map((b) => `- ${b}`).join('\n')}` : '',
+        ].filter(Boolean).join('\n');
+
+        const messages = [
+          { role: 'system' as const, content: systemPrompt },
+          { role: 'user' as const, content: skillPrompt },
+        ];
+
+        const result = await verifiedReason(messages);
+        const answer: SwarmMsg = {
+          type: 'peer_answer',
+          projectId: msg.projectId,
+          from: config.name,
+          answer: result.text,
+          skill: selectedSkill,
+          verified: result.verified,
+          requestId: msg.requestId,
+        };
+        await axl.send(fromPeer, answer).catch((e) => {
+          console.warn(`[twin:${config.name}] peer_answer send failed:`, (e as Error).message);
+        });
+
+        // Store in session if active
+        const session = sessions.get(msg.projectId);
+        if (session) {
+          session.peerExchanges.push({
+            from: fromPeer.slice(0, 12),
+            to: config.name,
+            question: msg.question,
+            answer: result.text,
+            verified: result.verified,
+            skill: selectedSkill,
+          });
+        }
+      } catch (e) {
+        console.warn(`[twin:${config.name}] peer_query handling failed:`, (e as Error).message);
+      }
+      return;
+    }
+
+    // Handle peer_answer — store received negotiation response
+    if (msg.type === 'peer_answer') {
+      console.log(`[twin:${config.name}] peer_answer from=${msg.from}`);
+      const session = sessions.get(msg.projectId);
+      if (session) {
+        session.peerExchanges.push({
+          from: msg.from,
+          to: config.name,
+          question: `[exchanged]`,
+          answer: msg.answer,
+          verified: msg.verified,
+          skill: msg.skill,
+        });
+      }
+      return;
+    }
+
+    // Handle skill_evolved — log peer evolution notification
+    if (msg.type === 'skill_evolved') {
+      console.log(`[twin:${config.name}] skill_evolved: ${msg.from} updated ${msg.skillName} → ${msg.newHash.slice(0, 12)}...`);
+      return;
+    }
+
     if (msg.type !== 'query') return;
 
     console.log(`[twin:${config.name}] query from=${fromPeer.slice(0, 12)} id=${msg.requestId}`);
@@ -165,7 +243,9 @@ export async function runTwin(config: TwinConfig): Promise<void> {
   console.log(`[twin:${config.name}] HTTP port: env=${process.env.HTTP_PORT}, config.httpPort=${config.httpPort}, final=${httpPort}`);
 
   const httpServer = http.createServer(async (req, res) => {
-    if (req.url === '/' && req.method === 'GET') {
+    const pathname = req.url?.split('?')[0] || '/';
+
+    if (pathname === '/' && req.method === 'GET') {
       res.writeHead(200);
       res.end(JSON.stringify({
         agent: config.name,
@@ -175,7 +255,165 @@ export async function runTwin(config: TwinConfig): Promise<void> {
       return;
     }
 
-    if (req.url !== '/ask' || req.method !== 'POST') {
+    // GET /capabilities — instant agent metadata
+    if (pathname === '/capabilities' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        agent: config.name,
+        protocol: config.protocol,
+        skills: config.skills ?? [],
+        httpPort: httpPort,
+        ensName: config.ensName,
+      }));
+      return;
+    }
+
+    // GET /evolution-status — monitoring
+    if (pathname === '/evolution-status' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        lastEvolved,
+        interactionCount,
+        isEvolving,
+        skillsLoaded: agentSkills.length,
+      }));
+      return;
+    }
+
+    // POST /project — agent capability declaration + peer query broadcast
+    if (pathname === '/project' && req.method === 'POST') {
+      let body = '';
+      await new Promise<void>((resolve, reject) => {
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => resolve());
+        req.on('error', reject);
+        setTimeout(() => reject(new Error('request timeout')), 5000);
+      });
+
+      let request: any;
+      try {
+        request = JSON.parse(body);
+      } catch {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'invalid json' }));
+        return;
+      }
+
+      const { description, projectId } = request;
+      if (!description || !projectId) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'missing description or projectId' }));
+        return;
+      }
+
+      let role = '';
+      let components: string[] = [];
+      let needs: string[] = [];
+      let provides: string[] = [];
+      let verified = false;
+
+      try {
+        const systemPrompt = `You are ${config.name}, a ${config.protocol} expert.\nProject: ${description}\nRespond with ONLY valid JSON (no markdown):\n{"role":"...","components":["..."],"needs":["..."],"provides":["..."]}`;
+        const result = await verifiedReason([
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: 'Declare your role for this project.' },
+        ]);
+        verified = result.verified;
+
+        const cleanText = result.text.replace(/```json\n?|```\n?/g, '').trim();
+        const parsed = JSON.parse(cleanText);
+        role = parsed.role || '';
+        components = Array.isArray(parsed.components) ? parsed.components : [];
+        needs = Array.isArray(parsed.needs) ? parsed.needs : [];
+        provides = Array.isArray(parsed.provides) ? parsed.provides : [];
+      } catch (e) {
+        console.warn(`[twin:${config.name}] project JSON parse failed:`, (e as Error).message);
+        role = `${config.name} expert`;
+        components = [];
+        needs = [];
+        provides = config.skills ?? [];
+      }
+
+      const caps: CapabilityRecord = { agent: config.name, role, components, needs, provides, verified };
+      sessions.set(projectId, { caps, peerExchanges: [] });
+
+      // Fire-and-forget peer queries to configured peers
+      if (config.peerEnsNames?.length) {
+        Promise.resolve().then(async () => {
+          for (const peerEnsName of config.peerEnsNames!) {
+            try {
+              const peerRecord = await resolveAgentEns(peerEnsName);
+              const peerPeerId = peerRecord.texts?.['agent.axl_peer'];
+              if (!peerPeerId) {
+                console.warn(`[twin:${config.name}] peer ${peerEnsName} has no axl_peer text record`);
+                continue;
+              }
+
+              // Fixed peer query content per agent pair
+              let question = '';
+              if (config.name === 'zerog-builder') {
+                if (peerEnsName.includes('axl')) question = `For project '${description}': how should my 0G storage layer integrate with your P2P sync?`;
+                else if (peerEnsName.includes('ens')) question = `For project '${description}': what identity fields should I index in 0G KV for ENS resolution?`;
+              } else if (config.name === 'axl-builder') {
+                if (peerEnsName.includes('zerog')) question = `For project '${description}': how does P2P sync interact with 0G persistent storage?`;
+                else if (peerEnsName.includes('ens')) question = `For project '${description}': what peer discovery records should I maintain for ENS-resolvable agents?`;
+              } else if (config.name === 'ens-builder') {
+                if (peerEnsName.includes('zerog')) question = `For project '${description}': what text records should I store per-agent in 0G KV?`;
+                else if (peerEnsName.includes('axl')) question = `For project '${description}': how does ENS subname resolution discover AXL peer IDs?`;
+              }
+
+              if (question) {
+                const query: SwarmMsg = {
+                  type: 'peer_query',
+                  projectId,
+                  from: config.name,
+                  question,
+                  requestId: `pq-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+                };
+                await axl.send(peerPeerId, query).catch((e) => {
+                  console.warn(`[twin:${config.name}] peer query to ${peerEnsName} failed:`, (e as Error).message);
+                });
+              }
+            } catch (e) {
+              console.warn(`[twin:${config.name}] resolveAgentEns ${peerEnsName} failed:`, (e as Error).message);
+            }
+          }
+        });
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ...caps, projectId }));
+      return;
+    }
+
+    // GET /session/:projectId — return accumulated session data
+    const sessionMatch = pathname.match(/^\/session\/([a-zA-Z0-9_-]+)$/);
+    if (sessionMatch && req.method === 'GET') {
+      const projectId = sessionMatch[1];
+      const session = sessions.get(projectId);
+      if (!session) {
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'session not found' }));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        projectId,
+        caps: session.caps,
+        peerExchanges: session.peerExchanges,
+        complete: session.peerExchanges.length >= 2,
+      }));
+      return;
+    }
+
+    // POST /evolve — trigger skill evolution
+    if (pathname === '/evolve' && req.method === 'POST') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ started: true }));
+      return;
+    }
+
+    if (pathname !== '/ask' || req.method !== 'POST') {
       res.writeHead(404);
       res.end();
       return;

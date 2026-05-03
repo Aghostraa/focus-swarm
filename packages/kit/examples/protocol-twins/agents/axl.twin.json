@@ -11,5 +11,6 @@
     "Request correlation uses requestId; always match requestId in answer to original query to avoid cross-talk.",
     "Prefer HTTP bridge (api_port) for testing; use AXL for production dialogue between agents."
   ],
-  "skills": ["spawn-axl-cohort", "run-focus-session", "apply-twin-patterns"]
+  "skills": ["spawn-axl-cohort", "run-focus-session", "apply-twin-patterns"],
+  "peerEnsNames": ["zerog-builder.cortex.eth", "ens-builder.cortex.eth"]
 }

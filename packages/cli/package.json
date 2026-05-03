@@ -1,0 +1,12 @@
+{
+  "name": "@cortex/cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": { "cortex": "./bin/cortex.sh" },
+  "dependencies": {
+    "@cortex/protocol-twins": "workspace:*",
+    "@cortex/kit": "workspace:*",
+    "dotenv": "^16.4.0"
+  }
+}

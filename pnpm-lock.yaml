@@ -30,6 +30,18 @@ importers:
         specifier: ^16.4.0
         version: 16.6.1
 
+  packages/cli:
+    dependencies:
+      '@cortex/kit':
+        specifier: workspace:*
+        version: link:../kit
+      '@cortex/protocol-twins':
+        specifier: workspace:*
+        version: link:../protocol-twins
+      dotenv:
+        specifier: ^16.4.0
+        version: 16.6.1
+
   packages/contracts:
     devDependencies:
       '@nomicfoundation/hardhat-toolbox':

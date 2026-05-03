@@ -57,7 +57,12 @@ export type SwarmMsg =
   | { type: 'observation'; sessionId: string; source: string; content: string; ts: number }
   | { type: 'session-end'; sessionId: string }
   | { type: 'query'; from: string; question: string; context?: string; requestId: string }
-  | { type: 'answer'; from: string; question: string; answer: string; verified: boolean; requestId: string };
+  | { type: 'answer'; from: string; question: string; answer: string; verified: boolean; requestId: string }
+  | { type: 'project_brief'; projectId: string; description: string; from: string }
+  | { type: 'capability_response'; projectId: string; from: string; role: string; components: string[]; needs: string[]; provides: string[] }
+  | { type: 'peer_query'; projectId: string; from: string; question: string; requestId: string }
+  | { type: 'peer_answer'; projectId: string; from: string; answer: string; skill: string; verified: boolean; requestId: string }
+  | { type: 'skill_evolved'; from: string; skillName: string; newHash: string; reason: string };
 
 export interface TranscriptEntry {
   speaker: string;

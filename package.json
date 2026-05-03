@@ -12,7 +12,12 @@
     "protocol-twins": "pnpm -F @cortex/kit protocol-twins",
     "agents:build": "pnpm -F @cortex/kit build-agents",
     "e2e:kit": "bash e2e-kit/quickstart.sh",
-    "ui": "pnpm -F @cortex/ui dev"
+    "ui": "pnpm -F @cortex/ui dev",
+    "cortex:init": "pnpm -F @cortex/cli dev init",
+    "cortex:discover": "pnpm -F @cortex/cli dev discover",
+    "cortex:project": "pnpm -F @cortex/cli dev project",
+    "twins:start": "pnpm -F @cortex/protocol-twins start",
+    "demo:dev-session": "pnpm tsx demo/05-dev-session.ts"
   },
   "devDependencies": {
     "typescript": "^5.6.0",
