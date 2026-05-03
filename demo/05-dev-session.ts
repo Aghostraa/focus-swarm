@@ -14,11 +14,30 @@ async function main() {
   const description =
     'Build a decentralized voting app with encrypted ballots on 0G, P2P validator mesh via AXL, and voter identity via ENS';
 
-  const agents = [
-    { name: 'zerog-builder', httpPort: 9013, axlApiUrl: 'http://127.0.0.1:9022' },
-    { name: 'axl-builder', httpPort: 9023, axlApiUrl: 'http://127.0.0.1:9002' },
-    { name: 'ens-builder', httpPort: 9033, axlApiUrl: 'http://127.0.0.1:9012' },
-  ];
+  // Discover agents from ENS gateway
+  const gatewayUrl = process.env.ENS_GATEWAY_URL ?? 'http://127.0.0.1:8787';
+  console.log(`[demo:05] Discovering agents from ${gatewayUrl}...\n`);
+
+  let personas: any[] = [];
+  try {
+    const response = await fetch(`${gatewayUrl}/personas`);
+    if (!response.ok) throw new Error(`${response.status}`);
+    personas = await response.json();
+    console.log(`[demo:05] Discovered ${personas.length} persona(s)\n`);
+  } catch (e) {
+    console.warn(`[demo:05] Gateway lookup failed (${(e as Error).message}), falling back to hardcoded agents\n`);
+    personas = [
+      { name: 'zerog-builder', 'agent.http_port': '9013', 'agent.axl_api_url': 'http://127.0.0.1:9022' },
+      { name: 'axl-builder', 'agent.http_port': '9023', 'agent.axl_api_url': 'http://127.0.0.1:9002' },
+      { name: 'ens-builder', 'agent.http_port': '9033', 'agent.axl_api_url': 'http://127.0.0.1:9012' },
+    ];
+  }
+
+  const agents = personas.map(p => ({
+    name: p.name,
+    httpPort: parseInt(p['agent.http_port'] || p.httpPort || '9013'),
+    axlApiUrl: p['agent.axl_api_url'] || p.axlApiUrl || 'http://127.0.0.1:9002',
+  }));
 
   console.log(`[demo:05] Project: "${description}"\n`);
   console.log(`[demo:05] Running DevSession with ${agents.length} agents...\n`);

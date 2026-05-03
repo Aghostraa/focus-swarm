@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 // Demo 4: Run a 3-persona focus group session via moderator
-// Track: 0G Agents ($7.5k)
+// Track: 0G Agents 
 // Shows: full session orchestration, AXL mesh, 0G Compute per turn, synthesizer report
 
 import 'dotenv/config';

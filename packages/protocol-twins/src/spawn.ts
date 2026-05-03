@@ -2,8 +2,8 @@
 // Each twin gets its own AXL slot (index from config file order).
 
 import 'dotenv/config';
-import fs from 'node:fs';
-import path from 'node:path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { fileURLToPath } from 'url';
 import type { TwinConfig } from './index.js';
 import { runTwin } from './runtime.js';

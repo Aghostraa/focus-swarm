@@ -3,8 +3,8 @@
 // Uploads plaintext brains to 0G Storage, mints ERC-7857 tokens, registers ENS subnames.
 
 import 'dotenv/config';
-import fs from 'node:fs';
-import path from 'node:path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { fileURLToPath } from 'url';
 import { ethers } from 'ethers';
 import {
@@ -139,14 +139,14 @@ async function mintTwin(config: TwinConfig, manifest: MintManifest): Promise<voi
 
     // Extract tokenId from event logs
     const mintEvent = receipt.logs
-      .map(log => {
+      .map((log: any) => {
         try {
           return inftContract.interface.parseLog(log);
         } catch {
           return null;
         }
       })
-      .find(e => e?.name === 'PersonaMinted');
+      .find((e: any) => e?.name === 'PersonaMinted');
 
     if (!mintEvent) {
       throw new Error('Mint event not found in receipt');

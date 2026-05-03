@@ -1,7 +1,7 @@
 // cortex project — orchestrate full multi-agent dev session
 
-import fs from 'node:fs';
-import path from 'node:path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { runDevSession } from '@cortex/protocol-twins';
 import { resolveAgentEns } from '@cortex/kit';
 import { renderCapabilities, renderPeerExchanges } from './render.js';

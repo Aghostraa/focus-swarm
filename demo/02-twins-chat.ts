@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 // Demo 2: Two protocol twins exchange query/answer via AXL SwarmMsg
-// Track: AXL ($5k) + 0G Agents ($7.5k)
+// Track: AXL + 0G Agents 
 // Shows: query/answer SwarmMsg, pumpRecv, peer-to-peer verified dialogue
 
 import 'dotenv/config';

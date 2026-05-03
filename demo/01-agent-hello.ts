@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 // Demo 1: Agent.create → ask → remember → recall → save → load via ENS
-// Track: 0G Framework ($7.5k)
+// Track: 0G Framework 
 // Shows: Agent facade, 0G Storage (encrypted upload/download), 0G Compute (verified inference)
 
 import 'dotenv/config';

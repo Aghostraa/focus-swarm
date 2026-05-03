@@ -4,7 +4,7 @@
 // persists answer to 0G episodic log, routes cross-twin queries via ENS lookup.
 
 import 'dotenv/config';
-import fs from 'node:fs';
+import * as fs from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'url';
 import {
@@ -22,6 +22,7 @@ import {
   loadSkillDirectory,
   selectSkillsForTask,
   buildSkillPrompt,
+  type ChatMsg,
 } from '@cortex/kit';
 import type { TwinConfig, CapabilityRecord, PeerExchange } from './index.js';
 
@@ -114,9 +115,9 @@ export async function runTwin(config: TwinConfig): Promise<void> {
           config.boundaries?.length ? `\nBoundaries:\n${config.boundaries.map((b) => `- ${b}`).join('\n')}` : '',
         ].filter(Boolean).join('\n');
 
-        const messages = [
-          { role: 'system' as const, content: systemPrompt },
-          { role: 'user' as const, content: skillPrompt },
+        const messages: ChatMsg[] = [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: skillPrompt },
         ];
 
         const result = await verifiedReason(messages);
@@ -193,13 +194,13 @@ export async function runTwin(config: TwinConfig): Promise<void> {
         config.boundaries?.length ? `\nBoundaries:\n${config.boundaries.map((b) => `- ${b}`).join('\n')}` : '',
       ].filter(Boolean).join('\n');
 
-      const messages = [
-        { role: 'system' as const, content: systemPrompt },
+      const messages: ChatMsg[] = [
+        { role: 'system', content: systemPrompt },
       ];
       if (msg.context) {
-        messages.push({ role: 'user' as const, content: `Context: ${msg.context}` });
+        messages.push({ role: 'user', content: `Context: ${msg.context}` });
       }
-      messages.push({ role: 'user' as const, content: skillPrompt });
+      messages.push({ role: 'user', content: skillPrompt });
 
       const result = await verifiedReason(messages);
       answer = result.text;
@@ -225,9 +226,9 @@ export async function runTwin(config: TwinConfig): Promise<void> {
     interactionCount++;
     appendIntegrationEvent(config.name, {
       task: 'query',
-      outcome: verified ? 'success' : 'unverified',
-      integration: config.protocol ?? 'unknown',
-      notes: `Q: ${msg.question.slice(0, 100)} | A: ${answer.slice(0, 200)} | skill: ${selectedSkill}`,
+      outcome: verified ? 'worked' : 'partial',
+      protocol: config.protocol ?? 'unknown',
+      error: verified ? undefined : `Q: ${msg.question.slice(0, 100)} | A: ${answer.slice(0, 200)} | skill: ${selectedSkill}`,
     }).catch(() => {});
 
     // Trigger evolution every N interactions
@@ -459,13 +460,13 @@ export async function runTwin(config: TwinConfig): Promise<void> {
         config.boundaries?.length ? `\nBoundaries:\n${config.boundaries.map((b) => `- ${b}`).join('\n')}` : '',
       ].filter(Boolean).join('\n');
 
-      const messages = [
-        { role: 'system' as const, content: systemPrompt },
+      const messages: ChatMsg[] = [
+        { role: 'system', content: systemPrompt },
       ];
       if (context) {
-        messages.push({ role: 'user' as const, content: `Context: ${context}` });
+        messages.push({ role: 'user', content: `Context: ${context}` });
       }
-      messages.push({ role: 'user' as const, content: skillPrompt });
+      messages.push({ role: 'user', content: skillPrompt });
 
       const result = await verifiedReason(messages);
       answer = result.text;
@@ -478,9 +479,9 @@ export async function runTwin(config: TwinConfig): Promise<void> {
     interactionCount++;
     appendIntegrationEvent(config.name, {
       task: 'http_ask',
-      outcome: verified ? 'success' : 'unverified',
-      integration: 'http',
-      notes: `Q: ${message.slice(0, 100)} | skill: ${selectedSkill}`,
+      outcome: verified ? 'worked' : 'partial',
+      protocol: 'http',
+      error: verified ? undefined : `Q: ${message.slice(0, 100)} | skill: ${selectedSkill}`,
     }).catch(() => {});
 
     // Trigger evolution

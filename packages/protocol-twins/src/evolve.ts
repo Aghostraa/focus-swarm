@@ -1,7 +1,7 @@
 // Skill evolution — detect gaps from episodic log and generate updated skills.
 
-import fs from 'node:fs';
-import path from 'node:path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { verifiedReason } from '@cortex/kit';
 
 export interface EvolutionResult {

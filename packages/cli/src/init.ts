@@ -1,8 +1,8 @@
 // cortex init — bootstrap AXL cohort and protocol-twins agents
 
 import { spawn } from 'node:child_process';
-import fs from 'node:fs';
-import path from 'node:path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 const logDir = path.resolve(process.cwd(), 'infra/axl/logs');
 

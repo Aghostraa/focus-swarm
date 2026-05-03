@@ -1,5 +1,5 @@
 // Identity helpers: ed25519 (AXL peer IDs) + secp256k1 (EVM signer + ECIES).
-import fs from 'node:fs';
+import * as fs from 'node:fs';
 import { execSync } from 'node:child_process';
 import { ethers } from 'ethers';
 import { PRIVATE_KEY, RPC_URL } from './config.js';
