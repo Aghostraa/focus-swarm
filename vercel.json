@@ -1,0 +1,7 @@
+{
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm -F @cortex/ui build",
+  "devCommand": "pnpm -F @cortex/ui dev",
+  "outputDirectory": "packages/ui/.next",
+  "framework": "nextjs"
+}

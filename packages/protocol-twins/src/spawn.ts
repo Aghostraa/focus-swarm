@@ -22,7 +22,7 @@ function loadTwinConfigs(): TwinConfig[] {
       const raw = JSON.parse(fs.readFileSync(path.join(agentsDir, f), 'utf8'));
       const base = Number(process.env.AXL_BASE_PORT ?? 9002);
       const stride = Number(process.env.AXL_PORT_STRIDE ?? 10);
-      const mcp_base = 9003;
+      const mcp_base = Number(process.env.AXL_MCP_BASE_PORT ?? 9003);
       const config: TwinConfig = {
         ...raw,
         slotIndex: i,

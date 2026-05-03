@@ -1,0 +1,11 @@
+node_modules
+**/node_modules
+.next
+**/.next
+.git
+.env
+.env.local
+infra/axl/logs/*.log
+infra/axl/logs/*.pid
+infra/axl/configs/*.local.json
+infra/axl/configs/*.protocol-ui.json
