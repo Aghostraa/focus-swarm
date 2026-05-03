@@ -385,7 +385,7 @@ export default function ProtocolTwinsPage() {
                 onChange={(e) => setFollowupMessage(e.target.value)}
                 rows={3}
                 style={{ ...ideaInput, marginTop: 10 }}
-                placeholder="Describe what failed, e.g. "0G KV write failed with 503 — retry logic missing""
+                placeholder={'Describe what failed, e.g. "0G KV write failed with 503 — retry logic missing"'}
               />
               <button onClick={sendFollowup} disabled={loadingFollowup || !followupMessage.trim()} style={primaryButton}>
                 {loadingFollowup ? 'Evolving…' : 'Send follow-up / trigger evolve'}
